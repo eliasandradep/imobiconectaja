@@ -6,7 +6,7 @@ Execute: python migrate_dominios.py
 """
 import sqlite3, os, re
 
-DB_PATH = os.path.join('instance', 'imobikey.db')
+DB_PATH = os.path.join('instance', 'imobiconectaja.db')
 
 
 def gerar_slug(nome, existentes):

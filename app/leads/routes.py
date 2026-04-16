@@ -530,7 +530,7 @@ def atualizar_compativel(id):
 
 # ── API pública: receber leads de fontes externas ─────────────────────────────
 # Será consumida futuramente pelo site, WhatsApp, Facebook, Instagram.
-# Autenticação via header  X-Imobikey-Token  (api_token da imobiliária).
+# Autenticação via header  X-ImobiConectaJa-Token  (api_token da imobiliária).
 
 @leads_bp.route('/api/receber', methods=['POST'])
 def api_receber_lead():
@@ -545,11 +545,11 @@ def api_receber_lead():
         "mensagem": "Tenho interesse no AP001"  (opcional)
     }
     Header obrigatório:
-        X-Imobikey-Token: <api_token da imobiliária>
+        X-ImobiConectaJa-Token: <api_token da imobiliária>
     """
     from ..models import Imobiliaria
 
-    token = request.headers.get('X-Imobikey-Token')
+    token = request.headers.get('X-ImobiConectaJa-Token')
     if not token:
         return jsonify({"erro": "Token ausente"}), 401
 

@@ -14,16 +14,30 @@ def _resolver_imobiliaria(host, app):
     Resolve qual Imobiliária corresponde ao host recebido.
 
     Ordem de tentativas:
-      1. Domínio personalizado exato       →  www.imobiliaria.com.br
-      2. Domínio personalizado sem www     →  imobiliaria.com.br
-      3. Subdomínio da plataforma          →  slug.imobikey.com.br
-      4. Legado: campo 'dominio' exato     →  127.0.0.1 / qualquer valor salvo
+      1. Hosts da plataforma (localhost, 127.0.0.1, domínio raiz) → None (landing page)
+      2. Domínio personalizado exato       →  www.imobiliaria.com.br
+      3. Domínio personalizado sem www     →  imobiliaria.com.br
+      4. Subdomínio da plataforma          →  slug.imobiconectaja.com.br
+      5. Legado: campo 'dominio' exato     →  qualquer valor salvo
+
+    Acesso em desenvolvimento (sem subdomínio):
+      - localhost:5000/          → landing page
+      - localhost:5000/{slug}/   → site da imobiliária (rota em site_bp)
+      - localhost:5000/{slug}/painel → painel admin  (rota em site_bp)
     """
     from .models import Imobiliaria
 
-    base = app.config.get('BASE_DOMAIN', '').strip().lower()
+    base     = app.config.get('BASE_DOMAIN', '').strip().lower()
+    platform = app.config.get('PLATFORM_HOSTS', set())
 
-    # 1 & 2 — Domínio personalizado (com e sem www)
+    # 1 — Hosts próprios da plataforma nunca resolvem para uma imobiliária.
+    #     Inclui localhost, 127.0.0.1, 0.0.0.0 e o domínio raiz da plataforma.
+    if host in platform:
+        return None
+    if base and host in (base, f'www.{base}'):
+        return None
+
+    # 2 & 3 — Domínio personalizado (com e sem www)
     host_sem_www = host[4:] if host.startswith('www.') else host
     imob = (
         Imobiliaria.query.filter(
@@ -34,7 +48,7 @@ def _resolver_imobiliaria(host, app):
     if imob:
         return imob
 
-    # 3 — Subdomínio da plataforma  (slug.base_domain)
+    # 4 — Subdomínio da plataforma  (slug.base_domain)
     if base and host.endswith(f'.{base}'):
         slug = host[:-(len(base) + 1)]
         if slug and slug != 'www':
@@ -42,17 +56,8 @@ def _resolver_imobiliaria(host, app):
             if imob:
                 return imob
 
-    # 4 — Campo legado 'dominio'
-    imob = Imobiliaria.query.filter_by(dominio=host, ativo=True).first()
-    if imob:
-        return imob
-
-    # 5 — Equivalência local: localhost ↔ 127.0.0.1
-    if host == 'localhost':
-        imob = Imobiliaria.query.filter_by(dominio='127.0.0.1', ativo=True).first()
-    elif host == '127.0.0.1':
-        imob = Imobiliaria.query.filter_by(dominio='localhost', ativo=True).first()
-    return imob
+    # 5 — Campo legado 'dominio' (compatibilidade com registros antigos)
+    return Imobiliaria.query.filter_by(dominio=host, ativo=True).first()
 
 
 def create_app():

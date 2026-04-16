@@ -177,11 +177,11 @@
                 <div class="input-group">
                     <span class="input-group-text bg-light"><i class="bi bi-database-fill text-muted"></i></span>
                     <input type="text" name="DATABASE_URL" class="form-control font-monospace"
-                           value="{{ env.get('DATABASE_URL','sqlite:///imobikey.db') }}"
-                           placeholder="sqlite:///imobikey.db">
+                           value="{{ env.get('DATABASE_URL','sqlite:///imobiconectaja.db') }}"
+                           placeholder="sqlite:///imobiconectaja.db">
                 </div>
                 <p class="hint">
-                    SQLite (padrão): <code>sqlite:///imobikey.db</code> &nbsp;|&nbsp;
+                    SQLite (padrão): <code>sqlite:///imobiconectaja.db</code> &nbsp;|&nbsp;
                     PostgreSQL: <code>postgresql://user:senha@host/banco</code>
                 </p>
             </div>
@@ -210,12 +210,12 @@
                     <span class="input-group-text bg-light text-muted" style="font-size:.8rem;">slug.</span>
                     <input type="text" name="BASE_DOMAIN" class="form-control font-monospace"
                            value="{{ env.get('BASE_DOMAIN','') }}"
-                           placeholder="imobikey.com.br">
+                           placeholder="imobiconectaja.com.br">
                 </div>
                 <p class="hint">
                     Deixe vazio no desenvolvimento local.<br>
-                    Em produção: <code>imobikey.com.br</code> → slug da imob acessa via
-                    <code>minha-imob.imobikey.com.br</code>
+                    Em produção: <code>imobiconectaja.com.br</code> → slug da imob acessa via
+                    <code>minha-imob.imobiconectaja.com.br</code>
                 </p>
             </div>
 

@@ -69,6 +69,12 @@ def logout():
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
 
+@superadmin_bp.route('/painel')
+def painel():
+    """Alias amigável para o dashboard master (localhost:5000/superadmin/painel)."""
+    return redirect(url_for('superadmin.dashboard'))
+
+
 @superadmin_bp.route('/')
 @superadmin_required
 def dashboard():
@@ -454,11 +460,11 @@ def _testar_smtp(env_valores):
     destinatario = current_user.email if hasattr(current_user, 'email') else username
     try:
         msg = Message(
-            subject='ImobiKey — Teste de SMTP',
+            subject='ImobiConectaJa — Teste de SMTP',
             sender=(current_app.config.get('MAIL_DEFAULT_SENDER') or username),
             recipients=[destinatario],
             html=(
-                '<h2>Teste de e-mail — ImobiKey</h2>'
+                '<h2>Teste de e-mail — ImobiConectaJa</h2>'
                 '<p>Se você recebeu esta mensagem, as configurações SMTP estão corretas.</p>'
                 '<p style="color:#888;font-size:.85rem;">Enviado pelo Painel Master</p>'
             ),

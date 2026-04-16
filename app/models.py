@@ -14,7 +14,7 @@ class Imobiliaria(db.Model):
     plano                 = db.Column(db.String(30),  default='basico')
     criado_em             = db.Column(db.DateTime,    default=datetime.utcnow)
     # Domínios
-    slug                  = db.Column(db.String(80),  unique=True)   # ex: "imob-master" → imob-master.imobikey.com.br
+    slug                  = db.Column(db.String(80),  unique=True)   # ex: "imob-master" → imob-master.imobiconectaja.com.br
     dominio_personalizado = db.Column(db.String(255))                # ex: "www.imobiliaria.com.br"
     tema_ativo     = db.Column(db.String(50),  default='clean')
     logo_url       = db.Column(db.String(255))
@@ -192,7 +192,7 @@ class Lead(db.Model):
 
 
 class SuperAdmin(db.Model, UserMixin):
-    """Usuário da plataforma ImobiKey — gerencia todas as imobiliárias."""
+    """Usuário da plataforma ImobiConectaJa — gerencia todas as imobiliárias."""
     __tablename__ = 'superadmins'
     id         = db.Column(db.Integer, primary_key=True)
     nome       = db.Column(db.String(100), nullable=False)

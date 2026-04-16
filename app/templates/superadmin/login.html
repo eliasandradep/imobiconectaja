@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acesso Master — ImobiKey</title>
+    <title>Acesso Master — ImobiConectaJa</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -56,7 +56,8 @@
 <body>
 <div class="login-card">
     <div class="logo-area">
-        <h2>Imobi<span>Fácil</span></h2>
+        <img src="{{ url_for('static', filename='img/logo.svg') }}"
+             alt="ImobiConectaJa" style="height:60px;width:auto;max-width:220px;object-fit:contain;margin-bottom:.75rem;">
         <span class="badge-master">Painel Master</span>
         <p class="text-muted small mt-3 mb-0">Acesso restrito ao administrador da plataforma.</p>
     </div>
@@ -74,7 +75,7 @@
             <label class="form-label fw-bold small">E-mail</label>
             <div class="input-group">
                 <span class="input-group-text bg-light"><i class="bi bi-envelope text-muted"></i></span>
-                <input type="email" name="email" class="form-control" placeholder="master@imobikey.com.br" required autofocus>
+                <input type="email" name="email" class="form-control" placeholder="master@imobiconectaja.com.br" required autofocus>
             </div>
         </div>
         <div class="mb-4">

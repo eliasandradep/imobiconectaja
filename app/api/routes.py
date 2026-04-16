@@ -50,9 +50,9 @@ def _paginar(query, pagina, por_pagina=20):
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('X-Imobikey-Token')
+        token = request.headers.get('X-ImobiConectaJa-Token')
         if not token:
-            return _erro("Token ausente. Envie o header 'X-Imobikey-Token'.", 401)
+            return _erro("Token ausente. Envie o header 'X-ImobiConectaJa-Token'.", 401)
         from ..models import Imobiliaria
         imob = Imobiliaria.query.filter_by(api_token=token).first()
         if not imob:
@@ -70,14 +70,14 @@ def token_required(f):
 
 @api_bp.route('/status', methods=['GET'])
 def status():
-    return _ok({"versao": "1.0", "plataforma": "ImobiKey"}, "API online")
+    return _ok({"versao": "1.0", "plataforma": "ImobiConectaJa"}, "API online")
 
 
 @api_bp.route('/docs', methods=['GET'])
 def docs():
     endpoints = {
         "autenticacao": {
-            "header": "X-Imobikey-Token",
+            "header": "X-ImobiConectaJa-Token",
             "descricao": "Todas as rotas (exceto /status e /docs) exigem este header."
         },
         "clientes": {

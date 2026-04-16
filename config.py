@@ -5,13 +5,13 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'chave-secreta-muito-dificil'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///imobikey.db'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///imobiconectaja.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JSON_AS_ASCII = False  # Permite acentos no JSON da API
 
     # Domínio base da plataforma (sem http://).
     # Se definido, subdomínios no formato slug.BASE_DOMAIN são roteados automaticamente.
-    # Exemplo: "imobikey.com.br"  →  minha-imob.imobikey.com.br
+    # Exemplo: "imobiconectaja.com.br"  →  minha-imob.imobiconectaja.com.br
     BASE_DOMAIN = os.environ.get('BASE_DOMAIN', '').strip().lower().lstrip('.')
 
     # Hosts que pertencem à própria plataforma (não são sites de imobiliárias)

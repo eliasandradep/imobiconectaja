@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ImobiConectaJá — Plataforma inteligente de imóveis</title>
+  <meta name="description" content="Plataforma completa para imobiliárias: site profissional, gestão de imóveis, CRM de leads e integração com WhatsApp, Instagram e Facebook.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --verde:       #1D9E75;
+      --verde-dark:  #085041;
+      --verde-light: #E1F5EE;
+      --ambar:       #BA7517;
+      --roxo:        #7F77DD;
+      --texto:       #2C2C2A;
+      --texto-suave: #888780;
+      --borda:       #E8E8E5;
+    }
+
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; color: var(--texto); background: #fff; overflow-x: hidden; }
+
+    /* ── NAVBAR ─────────────────────────────────────────────────── */
+    .navbar-lp {
+      position: sticky; top: 0; z-index: 1000;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--borda);
+      /* Altura fixa: o logo transborda para baixo sem expandir o cabeçalho */
+      height: 64px;
+      overflow: visible;
+    }
+    .navbar-lp .logo-wrap {
+      /* Reserva no flex apenas a largura proporcional à altura do navbar (64px).
+         Razão do SVG: 680/220 ≈ 3.09  →  64px × 3.09 ≈ 198px de largura */
+      position: relative;
+      width: 198px;
+      height: 64px;
+      flex-shrink: 0;
+      overflow: visible;
+    }
+    .navbar-lp .logo-wrap img {
+      /* Posicionada dentro do logo-wrap, transborda 136px para baixo */
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 200px;
+      width: auto;
+      z-index: 1001;
+    }
+    .navbar-lp .container {
+      height: 64px;
+      overflow: visible;
+    }
+    .navbar-lp .nav-link { color: var(--texto); font-size: .9rem; font-weight: 500; transition: color .2s; }
+    .navbar-lp .nav-link:hover { color: var(--verde); }
+    .btn-verde {
+      background: var(--verde); color: #fff; border: none;
+      border-radius: 8px; font-weight: 600; transition: background .2s, transform .15s;
+    }
+    .btn-verde:hover { background: var(--verde-dark); color: #fff; transform: translateY(-1px); }
+    .btn-verde-outline {
+      border: 1.5px solid var(--verde); color: var(--verde); background: transparent;
+      border-radius: 8px; font-weight: 600; transition: all .2s;
+    }
+    .btn-verde-outline:hover { background: var(--verde); color: #fff; }
+
+    /* ── HERO ────────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #f0faf6 0%, #fefefe 55%, #f5f3ff 100%);
+      /* 64px navbar + 136px overflow do logo + 24px respiro = 224px → ~14rem */
+      padding: 14rem 0 4rem;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -120px; right: -120px;
+      width: 480px; height: 480px;
+      background: radial-gradient(circle, rgba(29,158,117,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; bottom: -80px; left: -80px;
+      width: 340px; height: 340px;
+      background: radial-gradient(circle, rgba(127,119,221,.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: var(--verde-light); color: var(--verde-dark);
+      border-radius: 99px; padding: .3rem .9rem;
+      font-size: .78rem; font-weight: 600; letter-spacing: .3px; margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2.1rem, 5vw, 3.4rem);
+      font-weight: 800; line-height: 1.15; letter-spacing: -.02em;
+    }
+    .hero h1 .destaque { color: var(--verde); }
+    .hero p.lead { font-size: 1.1rem; color: #555; max-width: 520px; line-height: 1.7; }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+    .hero-card {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.08);
+      padding: 1.5rem; border: 1px solid var(--borda);
+    }
+    .hero-stat { text-align: center; padding: 1rem; }
+    .hero-stat .num { font-size: 1.9rem; font-weight: 800; color: var(--verde); }
+    .hero-stat .lab { font-size: .78rem; color: var(--texto-suave); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── LOGOS / TRUST BAR ───────────────────────────────────────── */
+    .trust-bar {
+      background: #f9f9f8; border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda);
+      padding: 1.2rem 0;
+    }
+    .trust-bar p { font-size: .78rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin: 0; }
+    .trust-integ {
+      display: flex; align-items: center; gap: .4rem;
+      background: #fff; border: 1px solid var(--borda); border-radius: 8px;
+      padding: .4rem .8rem; font-size: .85rem; font-weight: 600; color: var(--texto);
+    }
+    .trust-integ i { font-size: 1.1rem; }
+
+    /* ── SEÇÕES GENÉRICAS ────────────────────────────────────────── */
+    section { padding: 5rem 0; }
+    .section-label {
+      font-size: .75rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--verde); margin-bottom: .5rem;
+    }
+    .section-title { font-size: clamp(1.6rem,3.5vw,2.3rem); font-weight: 800; letter-spacing: -.02em; }
+    .section-sub { font-size: 1rem; color: #666; max-width: 540px; line-height: 1.7; margin: .75rem auto 0; }
+
+    /* ── FEATURES ────────────────────────────────────────────────── */
+    .features { background: #fff; }
+    .feat-card {
+      border: 1px solid var(--borda); border-radius: 16px;
+      padding: 1.75rem; height: 100%; transition: box-shadow .25s, transform .25s;
+    }
+    .feat-card:hover { box-shadow: 0 12px 40px rgba(29,158,117,.12); transform: translateY(-3px); }
+    .feat-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 1.1rem; flex-shrink: 0;
+    }
+    .feat-card h5 { font-size: 1.05rem; font-weight: 700; margin-bottom: .5rem; }
+    .feat-card p { font-size: .9rem; color: #666; line-height: 1.65; margin: 0; }
+    .feat-tag {
+      display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .5px;
+      text-transform: uppercase; padding: .15rem .6rem; border-radius: 99px; margin-top: .8rem;
+    }
+
+    /* ── COMO FUNCIONA ───────────────────────────────────────────── */
+    .como { background: linear-gradient(180deg, #f9fdf8 0%, #fff 100%); }
+    .step-num {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--verde); color: #fff;
+      font-weight: 800; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-connector { width: 2px; background: var(--verde-light); flex: 1; min-height: 32px; margin: 4px auto; }
+
+    /* ── PLANOS ──────────────────────────────────────────────────── */
+    .planos { background: var(--verde-dark); }
+    .planos .section-title { color: #fff; }
+    .planos .section-sub { color: rgba(255,255,255,.65); }
+    .plano-card {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 20px; padding: 2rem; height: 100%; position: relative;
+    }
+    .plano-card.destaque {
+      background: #fff; border-color: #fff;
+    }
+    .plano-card.destaque .plano-nome,
+    .plano-card.destaque .plano-preco,
+    .plano-card.destaque li { color: var(--texto) !important; }
+    .plano-card.destaque .plano-desc { color: #666 !important; }
+    .plano-badge {
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--ambar); color: #fff;
+      font-size: .72rem; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+      padding: .25rem .9rem; border-radius: 99px;
+    }
+    .plano-nome { font-size: .75rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,.5); }
+    .plano-preco { font-size: 2.4rem; font-weight: 800; color: #fff; line-height: 1.1; margin: .75rem 0 .3rem; }
+    .plano-preco span { font-size: 1rem; font-weight: 400; color: rgba(255,255,255,.55); }
+    .plano-desc { font-size: .85rem; color: rgba(255,255,255,.55); margin-bottom: 1.5rem; }
+    .plano-card ul { list-style: none; padding: 0; margin: 0; }
+    .plano-card li { display: flex; align-items: flex-start; gap: .5rem; font-size: .88rem; color: rgba(255,255,255,.8); padding: .35rem 0; border-bottom: 1px solid rgba(255,255,255,.07); }
+    .plano-card li:last-child { border: none; }
+    .plano-card li i { color: var(--verde); margin-top: 2px; flex-shrink: 0; }
+    .plano-card.destaque li i { color: var(--verde); }
+
+    /* ── CTA FINAL ───────────────────────────────────────────────── */
+    .cta-final {
+      background: linear-gradient(135deg, var(--verde) 0%, var(--verde-dark) 100%);
+      padding: 5rem 0; text-align: center;
+    }
+    .cta-final h2 { color: #fff; font-size: clamp(1.8rem,4vw,2.8rem); font-weight: 800; }
+    .cta-final p { color: rgba(255,255,255,.8); font-size: 1.05rem; max-width: 500px; margin: .75rem auto 2rem; }
+    .btn-branco {
+      background: #fff; color: var(--verde-dark); font-weight: 700;
+      border: none; border-radius: 10px; padding: .85rem 2.5rem; font-size: 1rem;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .btn-branco:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.2); color: var(--verde-dark); }
+    .btn-branco-outline {
+      background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.5);
+      font-weight: 600; border-radius: 10px; padding: .85rem 2.5rem; font-size: 1rem;
+      transition: all .2s;
+    }
+    .btn-branco-outline:hover { background: rgba(255,255,255,.1); color: #fff; border-color: #fff; }
+
+    /* ── FOOTER ──────────────────────────────────────────────────── */
+    footer {
+      background: #1a1a18; color: rgba(255,255,255,.55);
+      padding: 3rem 0 2rem;
+    }
+    footer .logo-footer img { height: 32px; opacity: .75; }
+    footer p { font-size: .85rem; line-height: 1.7; }
+    footer a { color: rgba(255,255,255,.45); text-decoration: none; font-size: .85rem; transition: color .2s; }
+    footer a:hover { color: var(--verde); }
+    footer h6 { color: rgba(255,255,255,.8); font-size: .8rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 1rem; }
+    .footer-divider { border-color: rgba(255,255,255,.08); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     NAVBAR
+══════════════════════════════════════════════════════════════ -->
+<nav class="navbar-lp">
+  <div class="container d-flex align-items-center justify-content-between gap-3">
+    <div class="logo-wrap">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="ImobiConectaJá">
+    </div>
+    <div class="d-none d-md-flex align-items-center gap-4">
+      <a href="#funcionalidades" class="nav-link">Funcionalidades</a>
+      <a href="#como-funciona" class="nav-link">Como funciona</a>
+      <a href="#planos" class="nav-link">Planos</a>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('auth.login') }}" class="btn btn-verde-outline btn-sm px-3 py-2">Entrar</a>
+      <a href="#contato" class="btn btn-verde btn-sm px-3 py-2">Começar grátis</a>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <div class="row align-items-center gy-5">
+
+      <!-- Texto -->
+      <div class="col-lg-6">
+        <div class="hero-badge">
+          <i class="bi bi-stars"></i> Plataforma com IA integrada
+        </div>
+        <h1>
+          Sua imobiliária<br>
+          <span class="destaque">conectada e vendendo</span><br>
+          muito mais.
+        </h1>
+        <p class="lead mt-3">
+          Site profissional, gestão de imóveis, CRM de leads e indicação automática de imóveis compatíveis — tudo em uma única plataforma.
+        </p>
+        <div class="hero-actions">
+          <a href="#contato" class="btn btn-verde px-4 py-3 fs-6">
+            Começar agora <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+          <a href="#como-funciona" class="btn btn-verde-outline px-4 py-3 fs-6">
+            Ver como funciona
+          </a>
+        </div>
+        <div class="mt-4 d-flex align-items-center gap-2" style="font-size:.82rem;color:#888;">
+          <i class="bi bi-shield-check text-success"></i> Sem cartão de crédito &nbsp;·&nbsp;
+          <i class="bi bi-clock text-success"></i> Configure em minutos
+        </div>
+      </div>
+
+      <!-- Cards de stats -->
+      <div class="col-lg-6">
+        <div class="hero-card">
+          <div class="row g-3 mb-3">
+            <div class="col-4">
+              <div class="hero-stat">
+                <div class="num">6</div>
+                <div class="lab">Temas prontos</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="hero-stat">
+                <div class="num">API</div>
+                <div class="lab">Completa REST</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="hero-stat">
+                <div class="num">100%</div>
+                <div class="lab">Personalizado</div>
+              </div>
+            </div>
+          </div>
+          <!-- Mini preview do painel -->
+          <div style="background:#f4f7f6;border-radius:10px;padding:1rem;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div style="width:8px;height:8px;border-radius:50%;background:#1D9E75;"></div>
+              <span style="font-size:.78rem;color:#666;font-weight:500;">Novo lead compatível encontrado</span>
+              <span class="ms-auto badge" style="background:#E1F5EE;color:#085041;font-size:.7rem;">IA</span>
+            </div>
+            <div style="font-size:.82rem;color:#444;line-height:1.6;">
+              <strong>Ana Paula</strong> busca apartamento 2 quartos até R$ 450k em Curitiba.<br>
+              <span style="color:#1D9E75;font-weight:600;">3 imóveis compatíveis encontrados automaticamente.</span>
+            </div>
+            <div class="mt-2 d-flex gap-2">
+              <span style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:.25rem .6rem;font-size:.75rem;">AP-0042 · R$ 390k</span>
+              <span style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:.25rem .6rem;font-size:.75rem;">AP-0051 · R$ 420k</span>
+              <span style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:.25rem .6rem;font-size:.75rem;color:#888;">+1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     TRUST BAR — INTEGRAÇÕES
+══════════════════════════════════════════════════════════════ -->
+<div class="trust-bar">
+  <div class="container">
+    <div class="d-flex align-items-center gap-4 flex-wrap justify-content-center">
+      <p>Integra com</p>
+      <div class="trust-integ"><i class="bi bi-whatsapp" style="color:#25D366;"></i> WhatsApp</div>
+      <div class="trust-integ"><i class="bi bi-instagram" style="color:#E1306C;"></i> Instagram</div>
+      <div class="trust-integ"><i class="bi bi-facebook" style="color:#1877F2;"></i> Facebook</div>
+      <div class="trust-integ"><i class="bi bi-globe2" style="color:#1D9E75;"></i> Seu site</div>
+      <div class="trust-integ"><i class="bi bi-envelope-fill" style="color:#BA7517;"></i> E-mail automático</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FUNCIONALIDADES
+══════════════════════════════════════════════════════════════ -->
+<section class="features" id="funcionalidades">
+  <div class="container">
+    <div class="text-center mb-5">
+      <p class="section-label">Funcionalidades</p>
+      <h2 class="section-title">Tudo que sua imobiliária precisa</h2>
+      <p class="section-sub">Uma plataforma completa para gerenciar, divulgar e vender imóveis com eficiência.</p>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- Site Profissional -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#E1F5EE;">
+            <i class="bi bi-browser-chrome" style="color:#1D9E75;"></i>
+          </div>
+          <h5>Site Profissional</h5>
+          <p>Seu site imobiliário pronto para publicar, com 6 temas modernos, banners, páginas institucionais e domínio próprio.</p>
+          <span class="feat-tag" style="background:#E1F5EE;color:#085041;">Domínio Personalizado</span>
+        </div>
+      </div>
+
+      <!-- Gestão de Imóveis -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#FEF3C7;">
+            <i class="bi bi-house-heart" style="color:#BA7517;"></i>
+          </div>
+          <h5>Gestão de Imóveis</h5>
+          <p>Cadastre imóveis com fotos, valores, características e código de referência automático. Destaque os melhores e ordene como quiser.</p>
+          <span class="feat-tag" style="background:#FEF3C7;color:#92400E;">Fotos em Destaque</span>
+        </div>
+      </div>
+
+      <!-- CRM de Leads -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#F3E8FF;">
+            <i class="bi bi-person-lines-fill" style="color:#7F77DD;"></i>
+          </div>
+          <h5>CRM de Leads</h5>
+          <p>Capture, qualifique e acompanhe cada lead com status, origem (Site, WhatsApp, Instagram, Facebook) e histórico de contatos.</p>
+          <span class="feat-tag" style="background:#F3E8FF;color:#5B21B6;">Funil Completo</span>
+        </div>
+      </div>
+
+      <!-- Imóveis Compatíveis -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#E1F5EE;">
+            <i class="bi bi-stars" style="color:#1D9E75;"></i>
+          </div>
+          <h5>Imóveis Compatíveis com IA</h5>
+          <p>A plataforma cruza automaticamente o perfil de busca do lead com o seu catálogo e sugere os imóveis certos. Envie por e-mail com um clique.</p>
+          <span class="feat-tag" style="background:#E1F5EE;color:#085041;">Automático</span>
+        </div>
+      </div>
+
+      <!-- API de Integração -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#FEF3C7;">
+            <i class="bi bi-code-slash" style="color:#BA7517;"></i>
+          </div>
+          <h5>API REST Completa</h5>
+          <p>Integre a plataforma com qualquer sistema externo. Gerencie imóveis, leads e clientes via API com autenticação por token.</p>
+          <span class="feat-tag" style="background:#FEF3C7;color:#92400E;">Documentação incluída</span>
+        </div>
+      </div>
+
+      <!-- Domínio e Multi-tenant -->
+      <div class="col-md-6 col-lg-4">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:#F3E8FF;">
+            <i class="bi bi-globe-americas" style="color:#7F77DD;"></i>
+          </div>
+          <h5>Domínio Próprio</h5>
+          <p>Cada imobiliária opera com seu próprio domínio ou subdomínio. Identidade profissional garantida desde o primeiro acesso.</p>
+          <span class="feat-tag" style="background:#F3E8FF;color:#5B21B6;">Multi-tenant</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     COMO FUNCIONA
+══════════════════════════════════════════════════════════════ -->
+<section class="como" id="como-funciona">
+  <div class="container">
+    <div class="text-center mb-5">
+      <p class="section-label">Como funciona</p>
+      <h2 class="section-title">Do cadastro à venda em 4 passos</h2>
+      <p class="section-sub">Configure sua imobiliária online hoje mesmo, sem precisar de um time técnico.</p>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-7">
+
+        <div class="d-flex gap-4 mb-4">
+          <div class="d-flex flex-column align-items-center">
+            <div class="step-num">1</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="pb-4">
+            <h5 class="fw-700 mb-1" style="font-weight:700;">Crie sua conta</h5>
+            <p class="text-muted mb-0" style="font-size:.92rem;">Cadastre sua imobiliária em minutos. Defina nome, domínio e pronto — seu painel está disponível.</p>
+          </div>
+        </div>
+
+        <div class="d-flex gap-4 mb-4">
+          <div class="d-flex flex-column align-items-center">
+            <div class="step-num">2</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="pb-4">
+            <h5 style="font-weight:700;">Personalize seu site</h5>
+            <p class="text-muted mb-0" style="font-size:.92rem;">Escolha um tema, faça upload do logo, configure banners e páginas institucionais. Seu site fica pronto para o ar.</p>
+          </div>
+        </div>
+
+        <div class="d-flex gap-4 mb-4">
+          <div class="d-flex flex-column align-items-center">
+            <div class="step-num">3</div>
+            <div class="step-connector"></div>
+          </div>
+          <div class="pb-4">
+            <h5 style="font-weight:700;">Cadastre seus imóveis</h5>
+            <p class="text-muted mb-0" style="font-size:.92rem;">Adicione imóveis com fotos, descrição e valor. Eles aparecem automaticamente no seu site e ficam disponíveis na API.</p>
+          </div>
+        </div>
+
+        <div class="d-flex gap-4">
+          <div class="d-flex flex-column align-items-center">
+            <div class="step-num">4</div>
+          </div>
+          <div>
+            <h5 style="font-weight:700;">Receba e gerencie leads</h5>
+            <p class="text-muted mb-0" style="font-size:.92rem;">Leads chegam do seu site, WhatsApp, Instagram e Facebook. A plataforma sugere imóveis compatíveis automaticamente e você envia propostas com um clique.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     PLANOS
+══════════════════════════════════════════════════════════════ -->
+<section class="planos" id="planos">
+  <div class="container">
+    <div class="text-center mb-5">
+      <p class="section-label" style="color:rgba(255,255,255,.55);">Planos</p>
+      <h2 class="section-title">Escolha o plano ideal</h2>
+      <p class="section-sub">Comece com o básico e evolua conforme sua imobiliária cresce.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+
+      <!-- Básico -->
+      <div class="col-md-4 col-lg-3">
+        <div class="plano-card">
+          <p class="plano-nome">Básico</p>
+          <div class="plano-preco">Grátis<span> /mês</span></div>
+          <p class="plano-desc">Para começar com o essencial.</p>
+          <ul>
+            <li><i class="bi bi-check2"></i> Site público com 1 tema</li>
+            <li><i class="bi bi-check2"></i> Até 20 imóveis</li>
+            <li><i class="bi bi-check2"></i> CRM de leads</li>
+            <li><i class="bi bi-check2"></i> Subdomínio imobiconectaja.com.br</li>
+            <li><i class="bi bi-x text-danger"></i> <span style="opacity:.45;">API de integração</span></li>
+            <li><i class="bi bi-x text-danger"></i> <span style="opacity:.45;">Domínio próprio</span></li>
+          </ul>
+          <a href="#contato" class="btn btn-verde-outline w-100 mt-4" style="border-color:rgba(255,255,255,.25);color:#fff;">Começar grátis</a>
+        </div>
+      </div>
+
+      <!-- Profissional -->
+      <div class="col-md-4 col-lg-3">
+        <div class="plano-card destaque">
+          <span class="plano-badge">Mais popular</span>
+          <p class="plano-nome">Profissional</p>
+          <div class="plano-preco">R$ 97<span> /mês</span></div>
+          <p class="plano-desc">Para imobiliárias em crescimento.</p>
+          <ul>
+            <li><i class="bi bi-check2"></i> Site com todos os 6 temas</li>
+            <li><i class="bi bi-check2"></i> Imóveis ilimitados</li>
+            <li><i class="bi bi-check2"></i> CRM completo + imóveis compatíveis com IA</li>
+            <li><i class="bi bi-check2"></i> API REST completa</li>
+            <li><i class="bi bi-check2"></i> Domínio personalizado</li>
+            <li><i class="bi bi-check2"></i> E-mail automático de leads</li>
+          </ul>
+          <a href="#contato" class="btn btn-verde w-100 mt-4">Assinar agora</a>
+        </div>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="col-md-4 col-lg-3">
+        <div class="plano-card">
+          <p class="plano-nome">Enterprise</p>
+          <div class="plano-preco" style="font-size:1.8rem;">Sob consulta</div>
+          <p class="plano-desc">Para redes e grandes operações.</p>
+          <ul>
+            <li><i class="bi bi-check2"></i> Tudo do Profissional</li>
+            <li><i class="bi bi-check2"></i> Múltiplas unidades</li>
+            <li><i class="bi bi-check2"></i> SLA e suporte prioritário</li>
+            <li><i class="bi bi-check2"></i> Integrações customizadas</li>
+            <li><i class="bi bi-check2"></i> Treinamento da equipe</li>
+            <li><i class="bi bi-check2"></i> Onboarding dedicado</li>
+          </ul>
+          <a href="#contato" class="btn w-100 mt-4" style="background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);">Falar com vendas</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     CTA FINAL / CONTATO
+══════════════════════════════════════════════════════════════ -->
+<section class="cta-final" id="contato">
+  <div class="container">
+    <h2>Pronto para modernizar<br>sua imobiliária?</h2>
+    <p>Entre em contato e nossa equipe configura tudo para você começar ainda hoje.</p>
+
+    <div class="row justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="bg-white rounded-4 p-4 text-start shadow">
+          <h5 class="fw-bold mb-3" style="color:var(--texto);">Solicite um contato</h5>
+          <form>
+            <div class="mb-3">
+              <input type="text" class="form-control" placeholder="Nome da imobiliária" required>
+            </div>
+            <div class="mb-3">
+              <input type="text" class="form-control" placeholder="Seu nome" required>
+            </div>
+            <div class="mb-3">
+              <input type="tel" class="form-control" placeholder="WhatsApp" required>
+            </div>
+            <div class="mb-3">
+              <input type="email" class="form-control" placeholder="E-mail" required>
+            </div>
+            <div class="mb-3">
+              <select class="form-select">
+                <option value="">Plano de interesse</option>
+                <option>Básico (Grátis)</option>
+                <option>Profissional (R$ 97/mês)</option>
+                <option>Enterprise</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-verde w-100 py-3" style="font-size:1rem;">
+              Quero começar <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <p class="text-muted text-center small mt-2 mb-0">Retornamos em até 24h úteis.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="row gy-4 mb-4">
+
+      <div class="col-lg-4">
+        <div class="logo-footer mb-3">
+          <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="ImobiConectaJá">
+        </div>
+        <p>Plataforma completa para imobiliárias venderem mais com tecnologia, automação e inteligência artificial.</p>
+        <div class="d-flex gap-3 mt-3">
+          <a href="#" aria-label="Instagram"><i class="bi bi-instagram fs-5"></i></a>
+          <a href="#" aria-label="Facebook"><i class="bi bi-facebook fs-5"></i></a>
+          <a href="#" aria-label="WhatsApp"><i class="bi bi-whatsapp fs-5"></i></a>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-2 offset-lg-2">
+        <h6>Plataforma</h6>
+        <div class="d-flex flex-column gap-2">
+          <a href="#funcionalidades">Funcionalidades</a>
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#planos">Planos</a>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-2">
+        <h6>Acesso</h6>
+        <div class="d-flex flex-column gap-2">
+          <a href="{{ url_for('auth.login') }}">Login imobiliária</a>
+          <a href="{{ url_for('superadmin.login') }}">Painel master</a>
+          <a href="#contato">Cadastrar imobiliária</a>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-2">
+        <h6>Contato</h6>
+        <div class="d-flex flex-column gap-2">
+          <a href="mailto:contato@imobiconectaja.com.br">contato@imobiconectaja.com.br</a>
+          <a href="https://www.imobiconectaja.com.br">imobiconectaja.com.br</a>
+        </div>
+      </div>
+
+    </div>
+
+    <hr class="footer-divider">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2" style="font-size:.8rem;">
+      <span>&copy; {{ now.year if now is defined else 2026 }} ImobiConectaJá. Todos os direitos reservados.</span>
+      <div class="d-flex gap-3">
+        <a href="#">Privacidade</a>
+        <a href="#">Termos de uso</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Scroll suave para âncoras
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+</script>
+</body>
+</html>

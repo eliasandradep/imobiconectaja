@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - ImobiKey</title>
+    <title>Login - ImobiConectaJa</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8f9fa; }
@@ -16,7 +16,10 @@
             <div class="col-md-4">
                 <div class="card shadow-sm">
                     <div class="card-body p-4">
-                        <h3 class="text-center mb-4">ImobiKey</h3>
+                        <div class="text-center mb-4">
+                            <img src="{{ url_for('static', filename='img/logo.svg') }}"
+                                 alt="ImobiConectaJa" style="height:52px;width:auto;max-width:180px;object-fit:contain;">
+                        </div>
                         <p class="text-muted text-center">Acesse o seu painel</p>
                         
                         {% with messages = get_flashed_messages() %}
@@ -41,7 +44,7 @@
                     </div>
                 </div>
                 <div class="text-center mt-3 text-muted small">
-                    &copy; 2026 ImobiKey - Plataforma Imobiliária
+                    &copy; 2026 ImobiConectaJa - Plataforma Imobiliária
                 </div>
             </div>
         </div>

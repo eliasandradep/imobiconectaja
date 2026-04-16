@@ -4,7 +4,7 @@ Execute: python migrate_paginas.py
 """
 import sqlite3, os
 
-DB_PATH = os.path.join('instance', 'imobikey.db')
+DB_PATH = os.path.join('instance', 'imobiconectaja.db')
 
 def migrate():
     conn = sqlite3.connect(DB_PATH)

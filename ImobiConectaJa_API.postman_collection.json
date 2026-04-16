@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "ImobiKey API",
-    "description": "Coleção completa para integração com a API da plataforma ImobiKey.\n\n## Autenticação\nTodas as requisições (exceto /status e /docs) exigem o header:\n`X-Imobikey-Token: <seu_token>`\n\nO token pode ser encontrado no painel Superadmin → Imobiliárias → Editar → Token API.\n\n## Variáveis\nConfigure no seu Environment do Postman:\n- `base_url` → `http://localhost:5000`\n- `token`    → Token da imobiliária",
+    "name": "ImobiConectaJa API",
+    "description": "Coleção completa para integração com a API da plataforma ImobiConectaJa.\n\n## Autenticação\nTodas as requisições (exceto /status e /docs) exigem o header:\n`X-ImobiConectaJa-Token: <seu_token>`\n\nO token pode ser encontrado no painel Superadmin → Imobiliárias → Editar → Token API.\n\n## Variáveis\nConfigure no seu Environment do Postman:\n- `base_url` → `http://localhost:5000`\n- `token`    → Token da imobiliária",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -24,7 +24,7 @@
           "name": "Mapa de Endpoints (Docs)",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/docs", "host": ["{{base_url}}"], "path": ["api","docs"] }
           }
         }
@@ -37,7 +37,7 @@
           "name": "Listar Clientes",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": {
               "raw": "{{base_url}}/api/clientes?pagina=1&por_pagina=20",
               "host": ["{{base_url}}"], "path": ["api","clientes"],
@@ -55,7 +55,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -70,7 +70,7 @@
           "name": "Obter Cliente por ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/clientes/1", "host": ["{{base_url}}"], "path": ["api","clientes","1"] }
           }
         },
@@ -79,7 +79,7 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -94,7 +94,7 @@
           "name": "Excluir Cliente",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/clientes/1", "host": ["{{base_url}}"], "path": ["api","clientes","1"] }
           }
         }
@@ -107,7 +107,7 @@
           "name": "Listar Tipos de Imóvel",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/imoveis/tipos", "host": ["{{base_url}}"], "path": ["api","imoveis","tipos"] }
           }
         },
@@ -115,7 +115,7 @@
           "name": "Listar Imóveis",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": {
               "raw": "{{base_url}}/api/imoveis?pagina=1&por_pagina=20",
               "host": ["{{base_url}}"], "path": ["api","imoveis"],
@@ -135,7 +135,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -150,7 +150,7 @@
           "name": "Obter Imóvel por ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/imoveis/1", "host": ["{{base_url}}"], "path": ["api","imoveis","1"] }
           }
         },
@@ -159,7 +159,7 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -174,7 +174,7 @@
           "name": "Excluir Imóvel",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/imoveis/1", "host": ["{{base_url}}"], "path": ["api","imoveis","1"] }
           }
         },
@@ -183,7 +183,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" }
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }
             ],
             "body": {
               "mode": "formdata",
@@ -204,7 +204,7 @@
           "name": "⭐ Definir Foto Principal",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": {
               "raw": "{{base_url}}/api/imoveis/1/fotos/1/principal",
               "host": ["{{base_url}}"],
@@ -217,7 +217,7 @@
           "name": "🗑️ Excluir Foto",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": {
               "raw": "{{base_url}}/api/imoveis/1/fotos/1",
               "host": ["{{base_url}}"],
@@ -235,7 +235,7 @@
           "name": "Listar Leads",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": {
               "raw": "{{base_url}}/api/leads?pagina=1&por_pagina=20",
               "host": ["{{base_url}}"], "path": ["api","leads"],
@@ -254,7 +254,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -270,7 +270,7 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -285,7 +285,7 @@
           "name": "Obter Lead por ID",
           "request": {
             "method": "GET",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/leads/1", "host": ["{{base_url}}"], "path": ["api","leads","1"] }
           }
         },
@@ -294,7 +294,7 @@
           "request": {
             "method": "PUT",
             "header": [
-              { "key": "X-Imobikey-Token", "value": "{{token}}" },
+              { "key": "X-ImobiConectaJa-Token", "value": "{{token}}" },
               { "key": "Content-Type",     "value": "application/json" }
             ],
             "body": {
@@ -309,7 +309,7 @@
           "name": "Excluir Lead",
           "request": {
             "method": "DELETE",
-            "header": [{ "key": "X-Imobikey-Token", "value": "{{token}}" }],
+            "header": [{ "key": "X-ImobiConectaJa-Token", "value": "{{token}}" }],
             "url": { "raw": "{{base_url}}/api/leads/1", "host": ["{{base_url}}"], "path": ["api","leads","1"] }
           }
         }
