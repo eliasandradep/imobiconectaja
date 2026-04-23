@@ -1,0 +1,187 @@
+{% extends 'admin/base.html' %}
+{% block page_title %}Equipe{% endblock %}
+
+{% block head %}
+<style>
+    .user-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: .75rem;
+    }
+    .user-avatar {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3498db, #0d6efd);
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .user-card.is-me .user-avatar {
+        background: linear-gradient(135deg, #52b788, #1b4332);
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-nome { font-weight: 600; color: #212529; font-size: .95rem; }
+    .user-email { font-size: .82rem; color: #888; }
+    .user-acts { display: flex; gap: .5rem; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="h4 fw-bold mb-0">Equipe</h2>
+        <small class="text-muted">Usuários com acesso ao painel desta imobiliária</small>
+    </div>
+    <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNovoUsuario">
+        <i class="bi bi-person-plus me-1"></i> Novo usuário
+    </button>
+</div>
+
+{# ── Lista de usuários ── #}
+{% for u in equipe %}
+<div class="user-card {% if u.id == current_user.id %}is-me{% endif %}">
+    <div class="user-avatar">{{ u.nome[0].upper() }}</div>
+    <div class="user-info">
+        <div class="user-nome">
+            {{ u.nome }}
+            {% if u.id == current_user.id %}
+            <span class="badge bg-success-subtle text-success ms-1" style="font-size:.65rem;">Você</span>
+            {% endif %}
+        </div>
+        <div class="user-email">{{ u.email }}</div>
+    </div>
+    <div class="user-acts">
+        <button class="btn btn-outline-secondary btn-sm"
+                onclick="abrirEdicao({{ u.id }}, '{{ u.nome | e }}', '{{ u.email | e }}')"
+                title="Editar">
+            <i class="bi bi-pencil"></i>
+        </button>
+        <button class="btn btn-outline-warning btn-sm"
+                onclick="abrirResetSenha({{ u.id }}, '{{ u.nome | e }}')"
+                title="Redefinir senha">
+            <i class="bi bi-key"></i>
+        </button>
+        {% if u.id != current_user.id %}
+        <form method="POST" action="{{ url_for('admin.excluir_usuario', id=u.id) }}"
+              onsubmit="return confirm('Excluir o usuário \'{{ u.nome | e }}\'?')">
+            <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir">
+                <i class="bi bi-trash"></i>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+
+{# ── Modal: Novo usuário ── #}
+<div class="modal fade" id="modalNovoUsuario" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h6 class="modal-title fw-bold">Novo usuário</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.novo_usuario') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Nome</label>
+                        <input type="text" name="nome" class="form-control" placeholder="Nome completo" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">E-mail</label>
+                        <input type="email" name="email" class="form-control" placeholder="email@exemplo.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Senha</label>
+                        <input type="password" name="senha" class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Criar usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{# ── Modal: Editar usuário ── #}
+<div class="modal fade" id="modalEditarUsuario" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h6 class="modal-title fw-bold">Editar usuário</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formEditarUsuario">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Nome</label>
+                        <input type="text" name="nome" id="editNome" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">E-mail</label>
+                        <input type="email" name="email" id="editEmail" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary px-4">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{# ── Modal: Redefinir senha ── #}
+<div class="modal fade" id="modalResetSenha" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h6 class="modal-title fw-bold">Redefinir senha</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formResetSenha">
+                <div class="modal-body">
+                    <p class="text-muted small mb-3" id="resetNomeTexto"></p>
+                    <label class="form-label fw-bold small">Nova senha</label>
+                    <input type="password" name="nova_senha" class="form-control"
+                           placeholder="Mínimo 6 caracteres" minlength="6" required>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function abrirEdicao(id, nome, email) {
+    document.getElementById('editNome').value  = nome;
+    document.getElementById('editEmail').value = email;
+    document.getElementById('formEditarUsuario').action =
+        '/admin/usuarios/' + id + '/editar';
+    new bootstrap.Modal(document.getElementById('modalEditarUsuario')).show();
+}
+
+function abrirResetSenha(id, nome) {
+    document.getElementById('resetNomeTexto').textContent = 'Redefinir senha de "' + nome + '"';
+    document.getElementById('formResetSenha').action =
+        '/admin/usuarios/' + id + '/reset-senha';
+    new bootstrap.Modal(document.getElementById('modalResetSenha')).show();
+}
+</script>
+{% endblock %}

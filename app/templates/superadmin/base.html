@@ -65,7 +65,9 @@
 
         /* ── Main ── */
         #main-content { flex: 1; padding: 1.75rem 2rem; overflow-y: auto; }
-        .modal-backdrop { display: none !important; }
+        .modal-backdrop,
+        .offcanvas-backdrop { display: none !important; }
+        body.modal-open { overflow: auto !important; padding-right: 0 !important; }
 
         /* ── Cards ── */
         .card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
@@ -97,7 +99,7 @@
     <div class="mt-2 flex-grow-1">
         <a href="{{ url_for('superadmin.dashboard') }}"
            class="nav-link-side {% if request.endpoint == 'superadmin.dashboard' %}active{% endif %}">
-            <i class="bi bi-speedometer2"></i> Dashboard
+            <i class="bi bi-speedometer2"></i> Painel
         </a>
 
         <div class="nav-group-label">Imobiliárias</div>
@@ -106,6 +108,7 @@
            class="nav-link-side {% if request.endpoint in ['superadmin.dashboard','superadmin.nova_imobiliaria','superadmin.editar_imobiliaria'] %}active{% endif %}">
             <i class="bi bi-building"></i> Gerenciar
         </a>
+
 
         <a href="{{ url_for('superadmin.nova_imobiliaria') }}"
            class="nav-link-side {% if request.endpoint == 'superadmin.nova_imobiliaria' %}active{% endif %}">
@@ -132,12 +135,17 @@
                  style="width:30px;height:30px;font-size:.75rem;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);">
                 {{ current_user.nome[0].upper() }}
             </div>
-            <div style="overflow:hidden;">
+            <div style="overflow:hidden;flex:1;min-width:0;">
                 <div class="text-white fw-bold" style="font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     {{ current_user.nome }}
                 </div>
                 <span class="badge-master">Master</span>
             </div>
+            <button onclick="document.getElementById('modalAlterarSenhaSA').querySelector('form').reset(); new bootstrap.Modal(document.getElementById('modalAlterarSenhaSA')).show();"
+                    class="btn btn-sm p-0 border-0 bg-transparent"
+                    style="color:rgba(255,255,255,.35);flex-shrink:0;" title="Alterar senha">
+                <i class="bi bi-key fs-6"></i>
+            </button>
         </div>
         {% endif %}
         <a href="{{ url_for('superadmin.logout') }}" class="nav-link-side text-danger ps-0" style="border:none;">
@@ -145,6 +153,42 @@
         </a>
     </div>
 </nav>
+
+{# ── Modal: Alterar própria senha (superadmin) ── #}
+<div class="modal fade" id="modalAlterarSenhaSA" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold">Alterar senha</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('superadmin.alterar_propria_senha') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Senha atual</label>
+                        <input type="password" name="senha_atual" class="form-control form-control-sm"
+                               placeholder="••••••••" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Nova senha</label>
+                        <input type="password" name="nova_senha" class="form-control form-control-sm"
+                               placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-bold small">Confirmar nova senha</label>
+                        <input type="password" name="confirmar_senha" class="form-control form-control-sm"
+                               placeholder="Repita a nova senha" minlength="6" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-sm px-4"
+                            style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <main id="main-content">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -169,6 +213,14 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+    document.querySelectorAll('.modal-backdrop, .offcanvas-backdrop').forEach(function (el) { el.remove(); });
+});
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

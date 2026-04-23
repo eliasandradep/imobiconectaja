@@ -67,6 +67,29 @@ def logout():
     return redirect(url_for('superadmin.login'))
 
 
+@superadmin_bp.route('/alterar-senha', methods=['POST'])
+@superadmin_required
+def alterar_propria_senha():
+    senha_atual = request.form.get('senha_atual',    '').strip()
+    nova_senha  = request.form.get('nova_senha',     '').strip()
+    confirmar   = request.form.get('confirmar_senha','').strip()
+
+    if not current_user.check_senha(senha_atual):
+        flash('Senha atual incorreta.', 'danger')
+        return redirect(request.referrer or url_for('superadmin.dashboard'))
+    if len(nova_senha) < 6:
+        flash('A nova senha deve ter ao menos 6 caracteres.', 'danger')
+        return redirect(request.referrer or url_for('superadmin.dashboard'))
+    if nova_senha != confirmar:
+        flash('A confirmação da senha não confere.', 'danger')
+        return redirect(request.referrer or url_for('superadmin.dashboard'))
+
+    current_user.set_senha(nova_senha)
+    db.session.commit()
+    flash('Senha alterada com sucesso.', 'success')
+    return redirect(request.referrer or url_for('superadmin.dashboard'))
+
+
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
 
 @superadmin_bp.route('/painel')

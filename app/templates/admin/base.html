@@ -83,7 +83,9 @@
             /* Impede qualquer overlay/backdrop de bloquear a tela */
         }
         /* Garante que backdrops de modal não travem a UI */
-        .modal-backdrop { display: none !important; }
+        .modal-backdrop,
+        .offcanvas-backdrop { display: none !important; }
+        body.modal-open { overflow: auto !important; padding-right: 0 !important; }
 
         /* ── Cards genéricos ─────────────────────────────────── */
         .card {
@@ -107,17 +109,29 @@
 <!-- ═══════════ SIDEBAR ═══════════ -->
 <nav id="sidebar">
     <div class="brand">
-        <img src="{{ url_for('static', filename='img/logo.svg') }}"
-             alt="ImobiConectaJa" style="height:36px;width:auto;max-width:100%;object-fit:contain;">
+        {% set imob = current_user.imobiliaria if current_user.is_authenticated and not current_user.is_superadmin else (g.imobiliaria or none) %}
+        {% if imob and imob.logo_url %}
+            <img src="{{ url_for('static', filename=imob.logo_url) }}"
+                 alt="{{ imob.nome }}"
+                 style="height:36px;width:auto;max-width:100%;object-fit:contain;display:block;">
+        {% else %}
+            <img src="{{ url_for('static', filename='img/logo.svg') }}"
+                 alt="ImobiConectaJa" style="height:36px;width:auto;max-width:100%;object-fit:contain;display:block;">
+        {% endif %}
+        {% if imob %}
+        <div style="margin-top:.4rem;font-size:.82rem;font-weight:700;color:#fff;
+                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
+            {{ imob.nome }}
+        </div>
+        {% endif %}
         <small>Painel Administrativo</small>
     </div>
 
     <div class="mt-2 flex-grow-1">
 
-        <!-- Dashboard -->
         <a href="{{ url_for('admin.dashboard') }}"
            class="nav-link-side {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
-            <i class="bi bi-speedometer2"></i> Dashboard
+            <i class="bi bi-speedometer2"></i> Painel
         </a>
 
         <!-- ── Inventário ── -->
@@ -172,6 +186,11 @@
             <i class="bi bi-file-earmark-text"></i> Páginas
         </a>
 
+        <a href="{{ url_for('admin.usuarios') }}"
+           class="nav-link-side {% if request.endpoint in ['admin.usuarios','admin.novo_usuario','admin.editar_usuario','admin.reset_senha_usuario','admin.excluir_usuario'] %}active{% endif %}">
+            <i class="bi bi-people"></i> Equipe
+        </a>
+
         <a href="{{ url_for('admin.configuracoes') }}"
            class="nav-link-side {% if request.endpoint == 'admin.configuracoes' %}active{% endif %}">
             <i class="bi bi-gear-fill"></i> Configurações
@@ -192,14 +211,19 @@
                  style="width:30px;height:30px;font-size:.75rem;flex-shrink:0;">
                 {{ current_user.nome[0].upper() if current_user.nome else 'U' }}
             </div>
-            <div style="overflow:hidden;">
+            <div style="overflow:hidden;flex:1;min-width:0;">
                 <div class="text-white fw-bold" style="font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                     {{ current_user.nome }}
                 </div>
                 <div style="font-size:.7rem;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    {{ g.imobiliaria.nome if g.imobiliaria else '' }}
+                    {{ imob.nome if imob else '' }}
                 </div>
             </div>
+            <button onclick="document.getElementById('modalAlterarSenha').querySelector('form').reset(); new bootstrap.Modal(document.getElementById('modalAlterarSenha')).show();"
+                    class="btn btn-sm p-0 border-0 bg-transparent"
+                    style="color:rgba(255,255,255,.35);flex-shrink:0;" title="Alterar senha">
+                <i class="bi bi-key fs-6"></i>
+            </button>
         </div>
         {% endif %}
         <a href="{{ url_for('auth.logout') }}" class="nav-link-side text-danger ps-0" style="border:none;">
@@ -207,6 +231,41 @@
         </a>
     </div>
 </nav>
+
+{# ── Modal: Alterar própria senha ── #}
+<div class="modal fade" id="modalAlterarSenha" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold">Alterar senha</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.alterar_propria_senha') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Senha atual</label>
+                        <input type="password" name="senha_atual" class="form-control form-control-sm"
+                               placeholder="••••••••" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Nova senha</label>
+                        <input type="password" name="nova_senha" id="adminNovaSenha" class="form-control form-control-sm"
+                               placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label fw-bold small">Confirmar nova senha</label>
+                        <input type="password" name="confirmar_senha" id="adminConfirmarSenha" class="form-control form-control-sm"
+                               placeholder="Repita a nova senha" minlength="6" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <!-- ═══════════ CONTEÚDO PRINCIPAL ═══════════ -->
 <main id="main-content">
@@ -234,6 +293,14 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+    document.querySelectorAll('.modal-backdrop, .offcanvas-backdrop').forEach(function (el) { el.remove(); });
+});
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

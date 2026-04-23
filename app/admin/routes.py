@@ -667,3 +667,125 @@ def toggle_menu_link(id):
     link.ativo = not link.ativo
     db.session.commit()
     return redirect(url_for('admin.paginas', tab='menu'))
+
+
+# ── SENHA PRÓPRIA ────────────────────────────────────────────────────────────
+
+@admin_bp.route('/alterar-senha', methods=['POST'])
+@login_required
+def alterar_propria_senha():
+    senha_atual   = request.form.get('senha_atual',    '').strip()
+    nova_senha    = request.form.get('nova_senha',     '').strip()
+    confirmar     = request.form.get('confirmar_senha','').strip()
+
+    if not current_user.check_senha(senha_atual):
+        flash('Senha atual incorreta.', 'danger')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+    if len(nova_senha) < 6:
+        flash('A nova senha deve ter ao menos 6 caracteres.', 'danger')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+    if nova_senha != confirmar:
+        flash('A confirmação da senha não confere.', 'danger')
+        return redirect(request.referrer or url_for('admin.dashboard'))
+
+    current_user.set_senha(nova_senha)
+    db.session.commit()
+    flash('Senha alterada com sucesso.', 'success')
+    return redirect(request.referrer or url_for('admin.dashboard'))
+
+
+# ── GESTÃO DE USUÁRIOS ────────────────────────────────────────────────────────
+
+@admin_bp.route('/usuarios')
+@login_required
+def usuarios():
+    from ..models import Usuario
+    equipe = Usuario.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).all()
+    return render_template('admin/usuarios.html', equipe=equipe)
+
+
+@admin_bp.route('/usuarios/novo', methods=['POST'])
+@login_required
+def novo_usuario():
+    from ..models import Usuario
+    nome  = request.form.get('nome',  '').strip()
+    email = request.form.get('email', '').strip().lower()
+    senha = request.form.get('senha', '').strip()
+
+    if not nome or not email or not senha:
+        flash('Preencha nome, e-mail e senha.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+    if len(senha) < 6:
+        flash('A senha deve ter ao menos 6 caracteres.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+    if Usuario.query.filter_by(email=email).first():
+        flash(f'O e-mail "{email}" já está cadastrado.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+
+    u = Usuario(nome=nome, email=email, imobiliaria_id=current_user.imobiliaria_id)
+    u.set_senha(senha)
+    db.session.add(u)
+    db.session.commit()
+    flash(f'Usuário "{nome}" criado com sucesso.', 'success')
+    return redirect(url_for('admin.usuarios'))
+
+
+@admin_bp.route('/usuarios/<int:id>/editar', methods=['POST'])
+@login_required
+def editar_usuario(id):
+    from ..models import Usuario
+    u = Usuario.query.filter_by(id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
+    nome  = request.form.get('nome',  '').strip()
+    email = request.form.get('email', '').strip().lower()
+
+    if not nome or not email:
+        flash('Nome e e-mail são obrigatórios.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+
+    conflito = Usuario.query.filter(Usuario.email == email, Usuario.id != id).first()
+    if conflito:
+        flash(f'O e-mail "{email}" já está em uso por outro usuário.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+
+    u.nome  = nome
+    u.email = email
+    db.session.commit()
+    flash('Usuário atualizado.', 'success')
+    return redirect(url_for('admin.usuarios'))
+
+
+@admin_bp.route('/usuarios/<int:id>/reset-senha', methods=['POST'])
+@login_required
+def reset_senha_usuario(id):
+    from ..models import Usuario
+    u = Usuario.query.filter_by(id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
+    senha = request.form.get('nova_senha', '').strip()
+    if len(senha) < 6:
+        flash('A nova senha deve ter ao menos 6 caracteres.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+    u.set_senha(senha)
+    db.session.commit()
+    flash(f'Senha de "{u.nome}" redefinida.', 'success')
+    return redirect(url_for('admin.usuarios'))
+
+
+@admin_bp.route('/usuarios/<int:id>/excluir', methods=['POST'])
+@login_required
+def excluir_usuario(id):
+    from ..models import Usuario
+    u = Usuario.query.filter_by(id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
+
+    if u.id == current_user.id:
+        flash('Você não pode excluir seu próprio usuário.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+
+    total = Usuario.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).count()
+    if total <= 1:
+        flash('Não é possível excluir o único usuário da imobiliária.', 'danger')
+        return redirect(url_for('admin.usuarios'))
+
+    nome = u.nome
+    db.session.delete(u)
+    db.session.commit()
+    flash(f'Usuário "{nome}" excluído.', 'success')
+    return redirect(url_for('admin.usuarios'))
