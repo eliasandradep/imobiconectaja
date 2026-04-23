@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ambientes virtuais
+venv/
+.venv/
+env/
+
+# Flask / SQLite
+instance/
+*.db
+*.sqlite3
+
+# Variáveis de ambiente (contém segredos)
+.env
+.env.*
+!.env.example
+
+# Uploads gerados em runtime
+app/static/uploads/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

@@ -95,8 +95,20 @@ def create_app():
     def carregar_imobiliaria():
         if request.endpoint == 'static':
             return
+        from flask import session
         host = request.host.split(':')[0].lower()
         g.imobiliaria = _resolver_imobiliaria(host, app)
+
+        # Fallback para navegação em desenvolvimento (host da plataforma):
+        # restaura a imobiliária gravada na sessão para as rotas do site público,
+        # permitindo que /imovel/<id>, /p/<slug> etc. funcionem após entrar via /<slug>/.
+        if not g.imobiliaria:
+            imob_id = session.get('_site_imob_id')
+            if imob_id and request.endpoint and request.endpoint.startswith('site.'):
+                from .models import Imobiliaria
+                g.imobiliaria = Imobiliaria.query.filter_by(
+                    id=imob_id, ativo=True
+                ).first()
 
     # ── Context processor: menu dinâmico + badge de leads novos ────
     @app.context_processor

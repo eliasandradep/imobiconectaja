@@ -106,8 +106,11 @@ def slug_site(slug):
     if slug in _RESERVADOS:
         abort(404)
     from ..models import Imobiliaria
+    from flask import session
     imob = Imobiliaria.query.filter_by(slug=slug, ativo=True).first_or_404()
     g.imobiliaria = imob
+    # Grava na sessão para que rotas internas (/imovel/<id>, /p/<slug>) funcionem
+    session['_site_imob_id'] = imob.id
     return _render_site_index()
 
 
