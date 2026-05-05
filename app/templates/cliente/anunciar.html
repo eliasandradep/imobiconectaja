@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Descreva seu Imóvel — {{ imob.nome }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    body { background:#f5f7fa; font-family:'Segoe UI',system-ui,sans-serif; }
+    .card { border:none; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,.07); }
+    .btn-ia { background:linear-gradient(135deg,#1b4332,#1D9E75); color:#fff; border:none; border-radius:10px; }
+    .btn-ia:hover { opacity:.9; color:#fff; }
+    .btn-primary { background:#1b4332; border:none; } .btn-primary:hover { background:#0d2a1f; }
+    .form-control:focus,.form-select:focus { border-color:#1b4332; box-shadow:0 0 0 3px rgba(27,67,50,.15); }
+    #ia-status { font-size:.85rem; }
+    .campo-extraido { border-color:#1D9E75 !important; background:#f0faf6; }
+  </style>
+</head>
+<body>
+<div class="container py-4" style="max-width:700px;">
+  <div class="mb-4 text-center">
+    {% if imob.logo_url %}
+      <img src="{{ url_for('static', filename=imob.logo_url) }}" alt="{{ imob.nome }}" style="height:40px;object-fit:contain;">
+    {% endif %}
+    <h4 class="fw-bold mt-2 mb-0">Cadastre seu imóvel</h4>
+    <p class="text-muted small">Descreva em texto livre e a IA preenche os dados automaticamente.</p>
+  </div>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="alert alert-{{ cat }} rounded-3">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  {# ── Bloco IA ── #}
+  <div class="card mb-4 p-4">
+    <h6 class="fw-bold mb-1"><i class="bi bi-stars text-success me-1"></i> Descreva seu imóvel</h6>
+    <p class="text-muted small mb-3">Escreva com detalhes: tipo, cidade, quartos, área, diferenciais, preço desejado etc.</p>
+    <textarea id="txt-descricao" class="form-control mb-3" rows="5"
+              placeholder="Ex: Tenho uma casa para alugar em São José dos Campos, 3 quartos sendo 1 suíte com closet, 2 banheiros, área de 150m², terreno de 200m², garagem para 2 carros..."></textarea>
+    <div class="d-flex align-items-center gap-3">
+      <button type="button" class="btn btn-ia px-4 py-2 fw-bold" id="btn-ia">
+        <i class="bi bi-magic me-1"></i> Analisar com IA
+      </button>
+      <span id="ia-status" class="text-muted"></span>
+    </div>
+  </div>
+
+  {# ── Formulário ── #}
+  <form method="POST" enctype="multipart/form-data">
+    <div class="card p-4 mb-4">
+      <h6 class="fw-bold mb-3">Dados do imóvel</h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold small">Finalidade *</label>
+          <select name="finalidade" id="f-finalidade" class="form-select" required>
+            <option value="Venda">Venda</option>
+            <option value="Locação">Locação (Aluguel)</option>
+            <option value="Venda e Locação">Venda e Locação</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold small">Tipo *</label>
+          <select name="tipo" id="f-tipo" class="form-select" required>
+            {% for t in tipos %}<option value="{{ t.nome }}">{{ t.nome }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-bold small">Título do anúncio *</label>
+          <input type="text" name="titulo" id="f-titulo" class="form-control" placeholder="Ex: Casa espaçosa 3 quartos em condomínio" required>
+        </div>
+        <div class="col-md-7">
+          <label class="form-label fw-bold small">Cidade</label>
+          <input type="text" name="cidade" id="f-cidade" class="form-control" placeholder="São Paulo">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label fw-bold small">UF</label>
+          <input type="text" name="estado" id="f-estado" class="form-control" maxlength="2" placeholder="SP">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-bold small">CEP</label>
+          <input type="text" name="cep" id="f-cep" class="form-control" placeholder="00000-000">
+        </div>
+        <div class="col-md-8">
+          <label class="form-label fw-bold small">Logradouro</label>
+          <input type="text" name="logradouro" id="f-logradouro" class="form-control" placeholder="Rua / Avenida">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small">Bairro</label>
+          <input type="text" name="bairro" id="f-bairro" class="form-control" placeholder="Bairro">
+        </div>
+
+        <div class="col-6 col-md-3">
+          <label class="form-label fw-bold small">Quartos</label>
+          <input type="number" name="quartos" id="f-quartos" class="form-control" min="0" value="0">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label fw-bold small">Suítes</label>
+          <input type="number" name="suites" id="f-suites" class="form-control" min="0" value="0">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label fw-bold small">Banheiros</label>
+          <input type="number" name="banheiros" id="f-banheiros" class="form-control" min="0" value="0">
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="form-label fw-bold small">Vagas</label>
+          <input type="number" name="vagas" id="f-vagas" class="form-control" min="0" value="0">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small">Área construída (m²)</label>
+          <input type="number" step="0.01" name="area_construida" id="f-area_construida" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small">Área do terreno (m²)</label>
+          <input type="number" step="0.01" name="area_terreno" id="f-area_terreno" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-bold small">Preço (R$)</label>
+          <input type="number" step="0.01" name="preco" id="f-preco" class="form-control">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-bold small">Descrição para o anúncio</label>
+          <textarea name="descricao" id="f-descricao" class="form-control" rows="4"
+                    placeholder="Texto que aparecerá no site para os compradores/locatários."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <h6 class="fw-bold mb-1"><i class="bi bi-camera me-1"></i> Fotos do imóvel</h6>
+      <p class="text-muted small mb-3">Envie fotos de boa qualidade. A primeira será a foto de capa.</p>
+      <input type="file" name="fotos" class="form-control" multiple accept="image/*">
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold fs-5">
+      <i class="bi bi-check-circle me-2"></i> Enviar para cadastro
+    </button>
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const btnIa  = document.getElementById('btn-ia');
+const status = document.getElementById('ia-status');
+
+function preencherCampo(id, valor) {
+  const el = document.getElementById(id);
+  if (!el || valor === undefined || valor === null || valor === '') return;
+  if (el.tagName === 'SELECT') {
+    for (const opt of el.options) {
+      if (opt.value.toLowerCase().includes(String(valor).toLowerCase()) ||
+          String(valor).toLowerCase().includes(opt.value.toLowerCase())) {
+        opt.selected = true; break;
+      }
+    }
+  } else {
+    el.value = valor;
+  }
+  el.classList.add('campo-extraido');
+}
+
+btnIa.addEventListener('click', async () => {
+  const texto = document.getElementById('txt-descricao').value.trim();
+  if (texto.length < 20) {
+    status.textContent = 'Descreva o imóvel com mais detalhes.';
+    return;
+  }
+  btnIa.disabled = true;
+  status.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Analisando...';
+
+  try {
+    const r = await fetch('{{ url_for("cliente.extrair_imovel") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({texto}),
+    });
+    const dados = await r.json();
+    if (dados.erro) { status.textContent = '⚠️ ' + dados.erro; return; }
+
+    preencherCampo('f-finalidade',      dados.finalidade);
+    preencherCampo('f-tipo',            dados.tipo);
+    preencherCampo('f-titulo',          dados.titulo);
+    preencherCampo('f-cidade',          dados.cidade);
+    preencherCampo('f-estado',          dados.estado);
+    preencherCampo('f-cep',             dados.cep);
+    preencherCampo('f-logradouro',      dados.logradouro);
+    preencherCampo('f-bairro',          dados.bairro);
+    preencherCampo('f-quartos',         dados.quartos);
+    preencherCampo('f-suites',          dados.suites);
+    preencherCampo('f-banheiros',       dados.banheiros);
+    preencherCampo('f-vagas',           dados.vagas);
+    preencherCampo('f-area_construida', dados.area_construida);
+    preencherCampo('f-area_terreno',    dados.area_terreno);
+    preencherCampo('f-preco',           dados.preco);
+    preencherCampo('f-descricao',       dados.descricao);
+
+    status.innerHTML = '✅ Campos preenchidos automaticamente! Revise antes de enviar.';
+  } catch (e) {
+    status.textContent = '⚠️ Erro ao conectar com a IA. Preencha manualmente.';
+  } finally {
+    btnIa.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

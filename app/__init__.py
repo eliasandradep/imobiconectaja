@@ -81,6 +81,8 @@ def create_app():
     from .api.routes        import api_bp
     from .superadmin.routes import superadmin_bp
     from .pessoas.routes    import pessoas_bp
+    from .cliente.routes    import cliente_bp
+    from .whatsapp.routes   import whatsapp_bp
 
     app.register_blueprint(auth_bp,       url_prefix='/auth')
     app.register_blueprint(admin_bp,      url_prefix='/admin')
@@ -88,6 +90,8 @@ def create_app():
     app.register_blueprint(pessoas_bp,    url_prefix='/admin/pessoas')
     app.register_blueprint(api_bp,        url_prefix='/api')
     app.register_blueprint(superadmin_bp, url_prefix='/superadmin')
+    app.register_blueprint(cliente_bp)
+    app.register_blueprint(whatsapp_bp)
     app.register_blueprint(site_bp)
 
     # ── Middleware: identifica a imobiliária pelo domínio ──────────

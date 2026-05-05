@@ -26,4 +26,13 @@ class Config:
     MAIL_USE_SSL  = os.environ.get('MAIL_USE_SSL',  'false').lower() == 'true'
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', '')
+
+    # ── IA — Claude API (Anthropic) ─────────────────────────────────
+    ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+
+    # ── WhatsApp — Evolution API ────────────────────────────────────
+    EVOLUTION_API_URL  = os.environ.get('EVOLUTION_API_URL', '')
+    EVOLUTION_API_KEY  = os.environ.get('EVOLUTION_API_KEY', '')
+    EVOLUTION_INSTANCE = os.environ.get('EVOLUTION_INSTANCE', '')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', MAIL_USERNAME)
