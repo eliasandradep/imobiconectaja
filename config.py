@@ -4,8 +4,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'chave-secreta-muito-dificil'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///imobiconectaja.db'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise RuntimeError('SECRET_KEY não definida. Configure a variável de ambiente antes de iniciar.')
+    # Railway entrega DATABASE_URL como "postgres://..." — SQLAlchemy exige "postgresql+psycopg2://"
+    _db_url = os.environ.get('DATABASE_URL') or 'sqlite:///imobiconectaja.db'
+    if _db_url.startswith('postgres://'):
+        _db_url = _db_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+    SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JSON_AS_ASCII = False  # Permite acentos no JSON da API
 
