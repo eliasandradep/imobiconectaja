@@ -261,10 +261,6 @@ def chat():
     if not g.imobiliaria:
         return jsonify({'resposta': 'Serviço indisponível.'}), 404
 
-    _PLANOS_COM_CHATBOT = {'profissional', 'plus'}
-    if (g.imobiliaria.plano or 'basic') not in _PLANOS_COM_CHATBOT:
-        return jsonify({'resposta': 'Serviço indisponível para o plano atual.'}), 403
-
     dados = request.get_json(silent=True) or {}
     mensagem_usuario = (dados.get('mensagem') or '').strip()
     if not mensagem_usuario:
