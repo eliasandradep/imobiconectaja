@@ -259,17 +259,20 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
 
-{# ── Chatbot Widget ─────────────────────────────────────────────── #}
-<button id="chat-fab" title="Falar com assistente" aria-label="Abrir chat">
+{# ── Chatbot Widget — disponível apenas para planos profissional e plus ── #}
+{% set _plano_imob = g.imobiliaria.plano or 'basic' %}
+{% set _chatbot_ativo = _plano_imob in ('profissional', 'plus') %}
+{% if _chatbot_ativo %}
+<button id="chat-fab" title="Fale com um Corretor" aria-label="Fale com um Corretor">
   <i class="bi bi-chat-dots-fill"></i>
   <span class="badge-notif" id="chat-notif"></span>
 </button>
 
-<div id="chat-panel" role="dialog" aria-label="Chat com assistente">
+<div id="chat-panel" role="dialog" aria-label="Fale com um Corretor">
   <div id="chat-header">
-    <div class="avatar"><i class="bi bi-robot"></i></div>
+    <div class="avatar"><i class="bi bi-headset"></i></div>
     <div class="info">
-      <strong>Assistente Virtual</strong>
+      <strong>Fale com um Corretor</strong>
       <small>{{ g.imobiliaria.nome }}</small>
     </div>
     <button id="chat-btn-reset" title="Reiniciar conversa"><i class="bi bi-arrow-counterclockwise"></i></button>
@@ -421,5 +424,6 @@
   }, 4000);
 })();
 </script>
+{% endif %}{# _chatbot_ativo #}
 </body>
 </html>

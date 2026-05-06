@@ -108,17 +108,35 @@ def create_app():
         # permitindo que /imovel/<id>, /p/<slug> etc. funcionem após entrar via /<slug>/.
         if not g.imobiliaria:
             imob_id = session.get('_site_imob_id')
-            if imob_id and request.endpoint and request.endpoint.startswith('site.'):
+            if imob_id and request.endpoint and request.endpoint.startswith('site.') \
+                    and request.endpoint != 'site.index':
                 from .models import Imobiliaria
                 g.imobiliaria = Imobiliaria.query.filter_by(
                     id=imob_id, ativo=True
                 ).first()
 
+    # ── Helper: URL pública do site de uma imobiliária ───────────
+    def url_site_imobiliaria(imob):
+        """Retorna a URL pública correta do site da imobiliária."""
+        if not imob:
+            return '/'
+        if getattr(imob, 'dominio_personalizado', None):
+            return f'https://{imob.dominio_personalizado}'
+        base = app.config.get('BASE_DOMAIN', '').strip()
+        if base and getattr(imob, 'slug', None):
+            return f'https://{imob.slug}.{base}'
+        # fallback desenvolvimento: roteamento por slug no path
+        return f'/{imob.slug}/'
+
     # ── Context processor: menu dinâmico + badge de leads novos ────
     @app.context_processor
     def injetar_contexto():
+        from app.superadmin.routes import PLANOS_CONFIG
+        extras = {'config': app.config, 'url_site_imob': url_site_imobiliaria,
+                  'planos_config': PLANOS_CONFIG}
+
         if not getattr(g, 'imobiliaria', None):
-            return {'menu_links': [], 'menu_paginas': [], 'leads_novos_count': 0, 'config': app.config}
+            return {**extras, 'menu_links': [], 'menu_paginas': [], 'leads_novos_count': 0}
 
         from .models import MenuLink, PaginaSite, Lead
         menu_links = MenuLink.query.filter_by(
@@ -131,10 +149,10 @@ def create_app():
             imobiliaria_id=g.imobiliaria.id, status='Novo'
         ).count()
         return {
+            **extras,
             'menu_links': menu_links,
             'menu_paginas': menu_paginas,
             'leads_novos_count': leads_novos_count,
-            'config': app.config,
         }
 
     return app

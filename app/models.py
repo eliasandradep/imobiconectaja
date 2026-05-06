@@ -30,6 +30,7 @@ class Imobiliaria(db.Model):
     slogan             = db.Column(db.String(200))   # texto do rodapé/hero
     ordenacao_imoveis  = db.Column(db.String(20),  default='recentes')  # recentes|destaque|preco_asc|preco_desc
     imoveis_por_pagina = db.Column(db.Integer,     default=9)
+    anthropic_api_key  = db.Column(db.String(200))
 
     usuarios     = db.relationship('Usuario',    backref='imobiliaria', lazy=True)
     imoveis      = db.relationship('Imovel',     backref='imobiliaria', lazy=True)
@@ -108,9 +109,13 @@ class Imovel(db.Model):
 
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
 
-    fotos = db.relationship('Foto',      backref='imovel',            lazy=True,
-                            cascade="all, delete-orphan")
-    tipo  = db.relationship('TipoImovel', backref='imoveis_deste_tipo', lazy=True)
+    proprietario_id = db.Column(db.Integer, db.ForeignKey('pessoas.id'), nullable=True)
+
+    fotos        = db.relationship('Foto',      backref='imovel',             lazy=True,
+                                   cascade="all, delete-orphan")
+    tipo         = db.relationship('TipoImovel', backref='imoveis_deste_tipo', lazy=True)
+    proprietario = db.relationship('Pessoa',     backref='imoveis_proprietario', lazy=True,
+                                   foreign_keys=[proprietario_id])
 
 
 class Foto(db.Model):

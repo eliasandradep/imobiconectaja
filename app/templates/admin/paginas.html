@@ -66,7 +66,7 @@
         <h2 class="h3 fw-bold mb-0">Configurar Páginas</h2>
         <small class="text-muted">Gerencie as páginas e o menu de navegação do seu site</small>
     </div>
-    <a href="{{ url_for('site.index') }}" target="_blank"
+    <a href="{{ url_site_imob(current_user.imobiliaria) }}" target="_blank" rel="noopener"
        class="btn btn-outline-secondary btn-sm px-3">
         <i class="bi bi-box-arrow-up-right me-1"></i> Ver Site
     </a>

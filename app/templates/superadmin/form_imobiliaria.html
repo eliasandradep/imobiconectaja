@@ -84,9 +84,10 @@
                     <label class="form-label fw-bold small">Plano</label>
                     <select name="plano" class="form-select">
                         {% for p in planos %}
+                        {% set cfg = planos_config.get(p, {}) %}
                         <option value="{{ p }}"
                             {% if form.plano == p or (form.get is defined and form.get('plano') == p) %}selected{% endif %}>
-                            {{ p | capitalize }}
+                            {{ cfg.get('label', p) }} — R$ {{ '%.2f'|format(cfg.get('preco', 0)) }}/mês
                         </option>
                         {% endfor %}
                     </select>

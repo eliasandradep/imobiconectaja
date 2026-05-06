@@ -2,6 +2,7 @@
 
 {% block head %}
 <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css">
 <style>
     .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
     .card-header { background: #fff !important; font-weight: bold; border-bottom: 1px solid #eee; color: #1a237e; text-transform: uppercase; font-size: 0.8rem; }
@@ -83,8 +84,10 @@
                         <div class="col-md-4 mb-3"><label class="form-label">CEP</label><input type="text" name="cep" id="cep" class="form-control" value="{{ imovel.cep if imovel }}"></div>
                         <div class="col-md-8 mb-3"><label class="form-label">Rua</label><input type="text" name="logradouro" id="logradouro" class="form-control" value="{{ imovel.logradouro if imovel }}"></div>
                         <div class="col-md-3 mb-3"><label class="form-label">Número</label><input type="text" name="numero" class="form-control" value="{{ imovel.numero if imovel }}"></div>
-                        <div class="col-md-5 mb-3"><label class="form-label">Bairro</label><input type="text" name="bairro" id="bairro" class="form-control" value="{{ imovel.bairro if imovel }}"></div>
+                        <div class="col-md-5 mb-3"><label class="form-label">Complemento</label><input type="text" name="complemento" class="form-control" placeholder="Apto, Bloco, Casa..." value="{{ imovel.complemento if imovel }}"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Bairro</label><input type="text" name="bairro" id="bairro" class="form-control" value="{{ imovel.bairro if imovel }}"></div>
                         <div class="col-md-4 mb-3"><label class="form-label">Cidade</label><input type="text" name="cidade" id="cidade" class="form-control" value="{{ imovel.cidade if imovel }}"></div>
+                        <div class="col-md-2 mb-3"><label class="form-label">UF</label><input type="text" name="estado" class="form-control" maxlength="2" placeholder="SP" value="{{ imovel.estado if imovel }}"></div>
                     </div>
                 </div>
             </div>
@@ -146,9 +149,37 @@
                         <div class="col-6 mb-2"><label class="small fw-bold">Suítes</label><input type="number" name="suites" class="form-control" value="{{ imovel.suites if imovel }}"></div>
                         <div class="col-6 mb-2"><label class="small fw-bold">Banheiros</label><input type="number" name="banheiros" class="form-control" value="{{ imovel.banheiros if imovel }}"></div>
                         <div class="col-6 mb-2"><label class="small fw-bold">Vagas</label><input type="number" name="vagas" class="form-control" value="{{ imovel.vagas if imovel }}"></div>
-                        <div class="col-6"><label class="small fw-bold">Área Útil</label><input type="number" name="area_util" class="form-control" value="{{ imovel.area_util if imovel }}"></div>
-                        <div class="col-6"><label class="small fw-bold">Área Total</label><input type="number" name="area_total" class="form-control" value="{{ imovel.area_total if imovel }}"></div>
+                        <div class="col-6"><label class="small fw-bold">Área Útil (m²)</label><input type="number" name="area_util" class="form-control" value="{{ imovel.area_util if imovel }}"></div>
+                        <div class="col-6"><label class="small fw-bold">Área Total (m²)</label><input type="number" name="area_total" class="form-control" value="{{ imovel.area_total if imovel }}"></div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header p-3">Proprietário</div>
+                <div class="card-body">
+                    {% if pessoas %}
+                    <select name="proprietario_id" id="sel-proprietario" class="form-select">
+                        <option value="">— Nenhum / Não informado —</option>
+                        {% for p in pessoas %}
+                        <option value="{{ p.id }}"
+                            data-doc="{{ p.documento or '' }}"
+                            {{ 'selected' if imovel and imovel.proprietario_id == p.id }}>
+                            {{ p.nome }}{% if p.documento %} · {{ p.documento }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="mt-2">
+                        <a href="{{ url_for('pessoas.nova_pessoa') }}" target="_blank" class="small text-primary">
+                            <i class="bi bi-person-plus me-1"></i>Cadastrar nova pessoa
+                        </a>
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-2">Nenhuma pessoa cadastrada ainda.</p>
+                    <a href="{{ url_for('pessoas.nova_pessoa') }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-person-plus me-1"></i> Cadastrar Proprietário
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -158,6 +189,7 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
     Dropzone.autoDiscover = false;
     document.addEventListener("DOMContentLoaded", function() {
@@ -251,6 +283,21 @@
         label.textContent = finalidade === 'Locação' ? 'Valor do Aluguel (R$/mês)' : 'Preço de Venda';
     }
 
-    document.addEventListener("DOMContentLoaded", updateLabelPreco);
+    document.addEventListener("DOMContentLoaded", function() {
+        updateLabelPreco();
+        const selProp = document.getElementById('sel-proprietario');
+        if (selProp) {
+            new TomSelect(selProp, {
+                placeholder: 'Buscar por nome ou CPF...',
+                allowEmptyOption: true,
+                searchField: ['text', 'data-doc'],
+                render: {
+                    option: function(data, escape) {
+                        return '<div>' + escape(data.text) + '</div>';
+                    }
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

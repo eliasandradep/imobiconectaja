@@ -2,11 +2,59 @@ import uuid, re, os
 from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, request, flash, current_app
 from flask_login import login_user, logout_user, current_user
-from ..models import SuperAdmin, Imobiliaria, Usuario, db
+from ..models import SuperAdmin, Imobiliaria, Usuario, TipoImovel, db
 
 superadmin_bp = Blueprint('superadmin', __name__)
 
-PLANOS = ['basico', 'profissional', 'enterprise']
+# Chave interna → dados de exibição e limites
+PLANOS_CONFIG = {
+    'basic': {
+        'label':       'Basic',
+        'preco':       49.90,
+        'imoveis_max': 30,
+        'fotos_max':   35,
+        'usuarios_max':1,
+        'ia_creditos': 5,
+        'chatbot':     False,
+        'ssl':         False,
+        'esteira':     False,
+    },
+    'standard': {
+        'label':       'Standard',
+        'preco':       69.90,
+        'imoveis_max': 350,
+        'fotos_max':   50,
+        'usuarios_max':3,
+        'ia_creditos': 10,
+        'chatbot':     False,
+        'ssl':         True,
+        'esteira':     True,
+    },
+    'profissional': {
+        'label':       'Profissional',
+        'preco':       109.90,
+        'imoveis_max': 1000,
+        'fotos_max':   65,
+        'usuarios_max':5,
+        'ia_creditos': 15,
+        'chatbot':     True,
+        'ssl':         True,
+        'esteira':     True,
+    },
+    'plus': {
+        'label':       'Plus',
+        'preco':       239.90,
+        'imoveis_max': 3000,
+        'fotos_max':   65,
+        'usuarios_max':15,
+        'ia_creditos': 50,
+        'chatbot':     True,
+        'ssl':         True,
+        'esteira':     True,
+    },
+}
+
+PLANOS = list(PLANOS_CONFIG.keys())
 
 
 def _gerar_slug(nome, excluir_id=None):
@@ -182,6 +230,26 @@ def nova_imobiliaria():
         )
         db.session.add(imob)
         db.session.flush()  # obtém imob.id
+
+        # Tipos de imóvel padrão para toda imobiliária nova
+        _TIPOS_PADRAO = [
+            ('Apartamento',    'AP'),
+            ('Casa',           'CA'),
+            ('Casa em Condomínio', 'CC'),
+            ('Terreno',        'TE'),
+            ('Sala Comercial', 'SC'),
+            ('Loja',           'LJ'),
+            ('Galpão',         'GA'),
+            ('Flat',           'FL'),
+            ('Cobertura',      'CB'),
+            ('Kitnet',         'KI'),
+        ]
+        for nome_tipo, prefixo in _TIPOS_PADRAO:
+            db.session.add(TipoImovel(
+                imobiliaria_id=imob.id,
+                nome=nome_tipo,
+                prefixo=prefixo,
+            ))
 
         usuario = Usuario(
             imobiliaria_id=imob.id,

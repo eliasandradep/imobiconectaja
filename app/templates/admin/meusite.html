@@ -114,7 +114,8 @@
         <h2 class="h3 fw-bold mb-0">Meu Site</h2>
         <small class="text-muted">Personalize a aparência do seu site público</small>
     </div>
-    <a href="{{ url_for('site.index') }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+    <a href="{{ url_site_imob(current_user.imobiliaria) }}" target="_blank" rel="noopener"
+       class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-box-arrow-up-right me-1"></i> Ver Site
     </a>
 </div>

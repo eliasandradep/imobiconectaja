@@ -1,7 +1,7 @@
 import os, uuid, shutil
 from flask import Blueprint, render_template, redirect, url_for, request, flash, session, jsonify
 from flask_login import login_required, current_user
-from ..models import Imovel, Foto, TipoImovel, BannerSite, db
+from ..models import Imovel, Foto, TipoImovel, BannerSite, Pessoa, db
 
 TEMAS = [
     {'id': 'clean',   'nome': 'Clean Azul',    'descricao': 'Clássico e profissional',
@@ -153,16 +153,21 @@ def detalhe_imovel(id):
 @admin_bp.route('/imoveis/novo', methods=['GET', 'POST'])
 @login_required
 def novo_imovel():
-    tipos = TipoImovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).all()
+    tipos   = TipoImovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).all()
+    pessoas = Pessoa.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).order_by(Pessoa.nome).all()
     if request.method == 'GET':
         session['upload_session_id'] = str(uuid.uuid4())
-    
+
     if request.method == 'POST':
         try:
             tipo_id = request.form.get('tipo_id')
             tipo_obj = TipoImovel.query.get(tipo_id)
             contagem = Imovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id, tipo_id=tipo_id).count()
             ref_gerada = f"{tipo_obj.prefixo}{(contagem + 1):03d}"
+
+            prop_id = request.form.get('proprietario_id') or None
+            if prop_id:
+                prop_id = int(prop_id)
 
             novo = Imovel(
                 imobiliaria_id=current_user.imobiliaria_id,
@@ -182,11 +187,13 @@ def novo_imovel():
                 cep=request.form.get('cep'),
                 logradouro=request.form.get('logradouro'),
                 numero=request.form.get('numero'),
+                complemento=request.form.get('complemento'),
                 bairro=request.form.get('bairro'),
                 cidade=request.form.get('cidade'),
                 estado=request.form.get('estado'),
                 descricao=request.form.get('descricao'),
-                destaque=True if request.form.get('destaque') else False
+                destaque=True if request.form.get('destaque') else False,
+                proprietario_id=prop_id,
             )
             db.session.add(novo)
             db.session.flush()
@@ -207,16 +214,18 @@ def novo_imovel():
         except Exception as e:
             db.session.rollback()
             flash(f"Erro: {e}", "danger")
-    return render_template('admin/form_imovel.html', tipos=tipos, imovel=None)
+    return render_template('admin/form_imovel.html', tipos=tipos, pessoas=pessoas, imovel=None)
 
 @admin_bp.route('/imoveis/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_imovel(id):
-    imovel = Imovel.query.filter_by(id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
-    tipos = TipoImovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).all()
+    imovel  = Imovel.query.filter_by(id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
+    tipos   = TipoImovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).all()
+    pessoas = Pessoa.query.filter_by(imobiliaria_id=current_user.imobiliaria_id).order_by(Pessoa.nome).all()
     if request.method == 'GET': session['upload_session_id'] = str(uuid.uuid4())
     if request.method == 'POST':
         try:
+            prop_id = request.form.get('proprietario_id') or None
             imovel.tipo_id          = request.form.get('tipo_id')
             imovel.titulo           = request.form.get('titulo')
             imovel.finalidade       = request.form.get('finalidade')
@@ -232,11 +241,13 @@ def editar_imovel(id):
             imovel.cep              = request.form.get('cep')
             imovel.logradouro       = request.form.get('logradouro')
             imovel.numero           = request.form.get('numero')
+            imovel.complemento      = request.form.get('complemento')
             imovel.bairro           = request.form.get('bairro')
             imovel.cidade           = request.form.get('cidade')
             imovel.estado           = request.form.get('estado')
             imovel.descricao        = request.form.get('descricao')
             imovel.destaque         = True if request.form.get('destaque') else False
+            imovel.proprietario_id  = int(prop_id) if prop_id else None
 
             # Processa novas fotos enviadas nesta edição
             session_id = session.get('upload_session_id')
@@ -255,7 +266,7 @@ def editar_imovel(id):
         except Exception as e:
             db.session.rollback()
             flash(f"Erro: {e}", "danger")
-    return render_template('admin/form_imovel.html', tipos=tipos, imovel=imovel)
+    return render_template('admin/form_imovel.html', tipos=tipos, pessoas=pessoas, imovel=imovel)
 
 @admin_bp.route('/imoveis/excluir/<int:id>', methods=['POST'])
 @login_required
@@ -360,6 +371,11 @@ def configuracoes():
         imob.slogan             = request.form.get('slogan', '').strip() or None
         imob.ordenacao_imoveis  = request.form.get('ordenacao_imoveis', 'recentes')
         imob.imoveis_por_pagina = int(request.form.get('imoveis_por_pagina') or 9)
+        chave = request.form.get('anthropic_api_key', '').strip()
+        if chave:
+            imob.anthropic_api_key = chave
+        elif request.form.get('anthropic_api_key_limpar'):
+            imob.anthropic_api_key = None
         db.session.commit()
         flash('Configurações salvas com sucesso!', 'success')
         return redirect(url_for('admin.configuracoes'))

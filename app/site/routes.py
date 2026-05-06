@@ -261,6 +261,10 @@ def chat():
     if not g.imobiliaria:
         return jsonify({'resposta': 'Serviço indisponível.'}), 404
 
+    _PLANOS_COM_CHATBOT = {'profissional', 'plus'}
+    if (g.imobiliaria.plano or 'basic') not in _PLANOS_COM_CHATBOT:
+        return jsonify({'resposta': 'Serviço indisponível para o plano atual.'}), 403
+
     dados = request.get_json(silent=True) or {}
     mensagem_usuario = (dados.get('mensagem') or '').strip()
     if not mensagem_usuario:
@@ -268,8 +272,12 @@ def chat():
 
     from flask import session, current_app
 
-    # ── Chave de API ────────────────────────────────────────────────────────
-    api_key = current_app.config.get('ANTHROPIC_API_KEY') or os.environ.get('ANTHROPIC_API_KEY')
+    # ── Chave de API — imobiliária tem prioridade sobre a chave global ──────
+    api_key = (
+        getattr(g.imobiliaria, 'anthropic_api_key', None)
+        or current_app.config.get('ANTHROPIC_API_KEY')
+        or os.environ.get('ANTHROPIC_API_KEY')
+    )
     if not api_key:
         return jsonify({
             'resposta': (

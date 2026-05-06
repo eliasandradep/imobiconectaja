@@ -217,7 +217,69 @@
     </p>
 </div>
 
-{# ── SEÇÃO 4: ATALHO TIPOS DE IMÓVEL ── #}
+{# ── SEÇÃO 4: INTELIGÊNCIA ARTIFICIAL ── #}
+<div class="cfg-section">
+    <div class="cfg-section-title">
+        <i class="bi bi-stars"></i> Inteligência Artificial — Chatbot
+    </div>
+    <p class="text-muted small mb-3">
+        Insira a chave da API da Anthropic (Claude) para habilitar o chatbot de atendimento no site desta imobiliária.
+        Cada imobiliária pode usar sua própria chave. Se não informada, a chave padrão da plataforma será utilizada (quando disponível).
+    </p>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <label class="form-label fw-bold small">Chave de API — Anthropic (Claude)</label>
+            <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-key-fill text-primary"></i></span>
+                <input type="password" name="anthropic_api_key" id="inp-api-key"
+                       class="form-control font-monospace"
+                       placeholder="sk-ant-api03-…"
+                       autocomplete="off"
+                       value="{{ imob.anthropic_api_key or '' }}">
+                <button class="btn btn-outline-secondary" type="button"
+                        onclick="toggleKey()" title="Mostrar/ocultar">
+                    <i class="bi bi-eye" id="ico-eye"></i>
+                </button>
+            </div>
+            <p class="cfg-hint mt-1">
+                Gere sua chave em
+                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
+                A chave é armazenada de forma segura e nunca exibida após salva.
+            </p>
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column justify-content-center">
+            {% if imob.anthropic_api_key %}
+            <div class="border rounded-3 p-3 bg-light d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                <div>
+                    <div class="fw-bold small">Chave configurada</div>
+                    <div class="text-muted" style="font-size:.72rem;">
+                        {{ imob.anthropic_api_key[:8] }}••••••••••••••••
+                    </div>
+                </div>
+            </div>
+            <div class="mt-2 text-end">
+                <label class="small text-danger" style="cursor:pointer;">
+                    <input type="checkbox" name="anthropic_api_key_limpar" value="1" class="me-1">
+                    Remover chave atual
+                </label>
+            </div>
+            {% else %}
+            <div class="border rounded-3 p-3 bg-light d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-circle text-warning fs-5"></i>
+                <div>
+                    <div class="fw-bold small">Sem chave própria</div>
+                    <div class="text-muted" style="font-size:.72rem;">Usando chave padrão da plataforma</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# ── SEÇÃO 5: ATALHO TIPOS DE IMÓVEL ── #}
 <div class="cfg-section" style="background: #f8f9ff; box-shadow: none; border: 1px solid #e8f0fe;">
     <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -250,6 +312,18 @@ function selOrd(label, val) {
     document.querySelectorAll('.ordenacao-card').forEach(c => c.classList.remove('selecionado'));
     label.classList.add('selecionado');
     document.getElementById('ordenacao_imoveis').value = val;
+}
+
+function toggleKey() {
+    const inp = document.getElementById('inp-api-key');
+    const ico = document.getElementById('ico-eye');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        ico.className = 'bi bi-eye-slash';
+    } else {
+        inp.type = 'password';
+        ico.className = 'bi bi-eye';
+    }
 }
 
 function highlightIpp(radio) {
