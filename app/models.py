@@ -187,6 +187,7 @@ class Lead(db.Model):
 
     # Perfil de busca (interesse do lead)
     interesse_finalidade  = db.Column(db.String(30))   # Compra | Locação | Ambos
+    interesse_tipo_id     = db.Column(db.Integer, db.ForeignKey('tipos_imovel.id'), nullable=True)
     interesse_preco_min   = db.Column(db.Numeric(14, 2))
     interesse_preco_max   = db.Column(db.Numeric(14, 2))
     interesse_quartos_min = db.Column(db.Integer)
@@ -194,6 +195,8 @@ class Lead(db.Model):
     interesse_bairros     = db.Column(db.String(500))
 
     data_contato = db.Column(db.DateTime, default=datetime.utcnow)
+
+    interesse_tipo = db.relationship('TipoImovel', lazy=True)
 
 
 class SuperAdmin(db.Model, UserMixin):
@@ -256,8 +259,11 @@ class ImoveCompativel(db.Model):
     email_enviado  = db.Column(db.Boolean, default=False, nullable=False)
     criado_em      = db.Column(db.DateTime, default=datetime.utcnow)
 
-    lead   = db.relationship('Lead',   backref='compativeis', lazy=True)
-    imovel = db.relationship('Imovel', backref='compativeis', lazy=True)
+    # Excluir o lead ou o imóvel remove também os vínculos de compatibilidade
+    lead   = db.relationship('Lead',   lazy=True,
+                             backref=db.backref('compativeis', cascade='all, delete-orphan'))
+    imovel = db.relationship('Imovel', lazy=True,
+                             backref=db.backref('compativeis', cascade='all, delete-orphan'))
 
     __table_args__ = (
         db.UniqueConstraint('lead_id', 'imovel_id', name='uq_lead_imovel'),

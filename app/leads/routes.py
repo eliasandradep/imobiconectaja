@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from flask_mail import Message
 from datetime import datetime
 from ..models import Lead, db
+from .compatibilidade import lead_tem_perfil, lead_ativo, query_compativeis
 from .. import mail
 
 
@@ -18,12 +19,19 @@ def _perfil_busca(form):
         except: return None
     return dict(
         interesse_finalidade  = form.get('interesse_finalidade', '').strip() or None,
+        interesse_tipo_id     = _int('interesse_tipo_id'),
         interesse_preco_min   = _dec('interesse_preco_min'),
         interesse_preco_max   = _dec('interesse_preco_max'),
         interesse_quartos_min = _int('interesse_quartos_min'),
         interesse_cidade      = form.get('interesse_cidade', '').strip() or None,
         interesse_bairros     = form.get('interesse_bairros', '').strip() or None,
     )
+
+
+def _tipos_imovel():
+    from ..models import TipoImovel
+    return (TipoImovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id)
+            .order_by(TipoImovel.nome).all())
 
 leads_bp = Blueprint('leads', __name__)
 
@@ -104,7 +112,7 @@ def novo_lead():
             db.session.rollback()
             flash(f"Erro ao cadastrar lead: {e}", "danger")
 
-    return render_template('admin/leads/form_leads.html', lead=None)
+    return render_template('admin/leads/form_leads.html', lead=None, tipos=_tipos_imovel())
 
 
 # ── Editar Lead ───────────────────────────────────────────────────────────────
@@ -133,7 +141,7 @@ def editar_lead(id):
             db.session.rollback()
             flash(f"Erro ao atualizar: {e}", "danger")
 
-    return render_template('admin/leads/form_leads.html', lead=lead)
+    return render_template('admin/leads/form_leads.html', lead=lead, tipos=_tipos_imovel())
 
 
 # ── Ações Rápidas (AJAX ou redirect) ─────────────────────────────────────────
@@ -218,31 +226,15 @@ def converter_para_pessoa(id):
 @leads_bp.route('/imoveis-compativeis/<int:id>')
 @login_required
 def imoveis_compativeis(id):
-    from ..models import Imovel, Foto
+    from ..models import Imovel
     lead = Lead.query.filter_by(
         id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
 
-    query = Imovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id)
+    if not lead_tem_perfil(lead):
+        return jsonify([])
 
-    if lead.interesse_finalidade and lead.interesse_finalidade != 'Ambos':
-        finalidade_map = {'Compra': 'Venda', 'Locação': 'Locação'}
-        fin = finalidade_map.get(lead.interesse_finalidade)
-        if fin:
-            query = query.filter(
-                db.or_(Imovel.finalidade == fin,
-                        Imovel.finalidade == 'Venda e Locação')
-            )
-
-    if lead.interesse_preco_min:
-        query = query.filter(Imovel.preco >= lead.interesse_preco_min)
-    if lead.interesse_preco_max:
-        query = query.filter(Imovel.preco <= lead.interesse_preco_max)
-    if lead.interesse_quartos_min:
-        query = query.filter(Imovel.quartos >= lead.interesse_quartos_min)
-    if lead.interesse_cidade:
-        query = query.filter(Imovel.cidade.ilike(f'%{lead.interesse_cidade}%'))
-
-    imoveis = query.order_by(Imovel.destaque.desc(), Imovel.id.desc()).limit(6).all()
+    imoveis = (query_compativeis(lead)
+               .order_by(Imovel.destaque.desc(), Imovel.id.desc()).limit(6).all())
 
     resultado = []
     for im in imoveis:
@@ -328,59 +320,48 @@ def _enviar_email_compativeis(imobiliaria, lead, imoveis, marcar_enviado=True):
 
 def _calcular_compativeis(imob_id, enviar_email=False):
     """
-    Cruza todos os leads com perfil de busca contra o catálogo e persiste novos vínculos.
+    Cruza os leads ativos com perfil de busca contra o catálogo (regra em
+    compatibilidade.py) e sincroniza os vínculos:
+      - cria os pares novos com status 'compativel';
+      - remove pares 'compativel' que deixaram de atender ao perfil (lead mudou
+        o perfil, imóvel mudou ou foi removido, lead foi arquivado/perdido).
+    Pares marcados pelo corretor como 'favorito' ou 'descartado' são preservados.
     Se enviar_email=True, dispara e-mail automático para leads com novos compatíveis.
     Retorna o número de novos pares encontrados.
     """
-    from ..models import Imovel, ImoveCompativel, Imobiliaria
+    from ..models import ImoveCompativel, Imobiliaria
     imobiliaria = Imobiliaria.query.get(imob_id)
 
-    leads_com_perfil = Lead.query.filter(
-        Lead.imobiliaria_id == imob_id,
-        db.or_(
-            Lead.interesse_finalidade != None,  # noqa: E711
-            Lead.interesse_preco_max  != None,
-            Lead.interesse_cidade     != None,
-            Lead.interesse_quartos_min!= None,
-        )
-    ).all()
+    existentes = {}   # lead_id → {imovel_id: ImoveCompativel}
+    for par in ImoveCompativel.query.filter_by(imobiliaria_id=imob_id).all():
+        existentes.setdefault(par.lead_id, {})[par.imovel_id] = par
 
     novos_por_lead = {}   # lead_id → [Imovel, ...]
-    novos = 0
-    for lead in leads_com_perfil:
-        query = Imovel.query.filter_by(imobiliaria_id=imob_id)
+    novos = removidos = 0
+    for lead in Lead.query.filter_by(imobiliaria_id=imob_id).all():
+        pares = existentes.get(lead.id, {})
+        if lead_ativo(lead) and lead_tem_perfil(lead):
+            compativeis = {im.id: im for im in query_compativeis(lead).all()}
+        else:
+            compativeis = {}
 
-        if lead.interesse_finalidade and lead.interesse_finalidade != 'Ambos':
-            fin = {'Compra': 'Venda', 'Locação': 'Locação'}.get(lead.interesse_finalidade)
-            if fin:
-                query = query.filter(db.or_(
-                    Imovel.finalidade == fin,
-                    Imovel.finalidade == 'Venda e Locação'
-                ))
-        if lead.interesse_preco_min:
-            query = query.filter(Imovel.preco >= lead.interesse_preco_min)
-        if lead.interesse_preco_max:
-            query = query.filter(Imovel.preco <= lead.interesse_preco_max)
-        if lead.interesse_quartos_min:
-            query = query.filter(Imovel.quartos >= lead.interesse_quartos_min)
-        if lead.interesse_cidade:
-            query = query.filter(Imovel.cidade.ilike(f'%{lead.interesse_cidade}%'))
-
-        for imovel in query.all():
-            existe = ImoveCompativel.query.filter_by(
-                lead_id=lead.id, imovel_id=imovel.id
-            ).first()
-            if not existe:
+        for imovel_id, imovel in compativeis.items():
+            if imovel_id not in pares:
                 db.session.add(ImoveCompativel(
                     imobiliaria_id=imob_id,
                     lead_id=lead.id,
-                    imovel_id=imovel.id,
+                    imovel_id=imovel_id,
                     status='compativel',
                 ))
                 novos_por_lead.setdefault(lead.id, {'lead': lead, 'imoveis': []})['imoveis'].append(imovel)
                 novos += 1
 
-    if novos:
+        for imovel_id, par in pares.items():
+            if par.status == 'compativel' and imovel_id not in compativeis:
+                db.session.delete(par)
+                removidos += 1
+
+    if novos or removidos:
         db.session.commit()
 
     # Envio automático de e-mail para leads com novos compatíveis

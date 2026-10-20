@@ -1,1 +1,1 @@
-web: python sync_uploads.py && gunicorn wsgi:app --workers 2 --bind 0.0.0.0:$PORT --timeout 120
+web: python atualizar_schema.py && python sync_uploads.py && gunicorn wsgi:app --workers 2 --bind 0.0.0.0:$PORT --timeout 120

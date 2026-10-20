@@ -228,10 +228,12 @@
         <span class="badge lead-status status-{{ lead.status }}" style="font-size:.65rem;border-radius:6px;">
             {{ lead.status }}
         </span>
-        {% if lead.interesse_finalidade %}
+        {% set perfil = [lead.interesse_finalidade,
+                         lead.interesse_tipo.nome if lead.interesse_tipo else None,
+                         lead.interesse_cidade, lead.interesse_bairros] | select | list %}
+        {% if perfil %}
         <div class="text-muted mt-1" style="font-size:.72rem;">
-            <i class="bi bi-search me-1"></i>{{ lead.interesse_finalidade }}
-            {% if lead.interesse_cidade %} · {{ lead.interesse_cidade }}{% endif %}
+            <i class="bi bi-search me-1"></i>{{ perfil | join(' · ') }}
         </div>
         {% endif %}
         <div class="d-flex gap-1 mt-2">

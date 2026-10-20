@@ -176,6 +176,7 @@ def _serializar_lead(l):
         "pessoa_id": l.pessoa_id,
         "interesse": {
             "finalidade": l.interesse_finalidade,
+            "tipo_id": l.interesse_tipo_id,
             "preco_min": float(l.interesse_preco_min) if l.interesse_preco_min else None,
             "preco_max": float(l.interesse_preco_max) if l.interesse_preco_max else None,
             "quartos_min": l.interesse_quartos_min,
@@ -700,6 +701,7 @@ def criar_lead():
         status=status,
         mensagem=dados.get('mensagem'),
         interesse_finalidade=dados.get('interesse_finalidade'),
+        interesse_tipo_id=dados.get('interesse_tipo_id'),
         interesse_preco_min=_num(dados.get('interesse_preco_min')),
         interesse_preco_max=_num(dados.get('interesse_preco_max')),
         interesse_quartos_min=dados.get('interesse_quartos_min'),
@@ -756,7 +758,7 @@ def atualizar_lead(id):
         l.status = dados['status']
 
     for campo in ('email', 'mensagem', 'interesse_finalidade', 'interesse_cidade',
-                  'interesse_bairros', 'interesse_quartos_min'):
+                  'interesse_bairros', 'interesse_quartos_min', 'interesse_tipo_id'):
         if campo in dados:
             setattr(l, campo, dados[campo])
 

@@ -235,6 +235,16 @@
                                        value="{{ '%,.2f'|format(lead.interesse_preco_max|float) if lead and lead.interesse_preco_max else '' }}">
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small">Tipo de imóvel</label>
+                            <select name="interesse_tipo_id" class="form-select">
+                                <option value="">— Qualquer —</option>
+                                {% for t in tipos %}
+                                <option value="{{ t.id }}"
+                                    {{ 'selected' if lead and lead.interesse_tipo_id == t.id }}>{{ t.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold small">Quartos mín.</label>
                             <select name="interesse_quartos_min" class="form-select">
@@ -245,17 +255,26 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label fw-bold small">Cidade de interesse</label>
                             <input type="text" name="interesse_cidade" class="form-control"
                                    placeholder="Ex: São Paulo"
                                    value="{{ lead.interesse_cidade if lead and lead.interesse_cidade else '' }}">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label fw-bold small">Bairros de interesse</label>
                             <input type="text" name="interesse_bairros" class="form-control"
                                    placeholder="Ex: Jardins, Moema, Vila Madalena"
                                    value="{{ lead.interesse_bairros if lead and lead.interesse_bairros else '' }}">
+                            <div class="form-text">Separe por vírgula. Basta o imóvel estar em um deles.</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Com finalidade "Ambos" ou não informada, a faixa de preço define o tipo de negócio:
+                                até R$ 30.000 é considerado aluguel mensal; acima disso, valor de compra.
+                                Leads arquivados ou perdidos não recebem imóveis compatíveis.
+                            </div>
                         </div>
                     </div>
                 </div>
