@@ -189,7 +189,7 @@
 
 <nav class="navbar navbar-expand-lg sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="{{ url_for('site.index') }}">
+        <a class="navbar-brand" href="{{ url_inicio() }}">
             {% if g.imobiliaria.logo_url %}
             <img src="{{ url_for('static', filename=g.imobiliaria.logo_url) }}"
                  alt="{{ g.imobiliaria.nome }}" style="max-height: 48px; max-width: 180px; object-fit: contain;">
@@ -203,7 +203,7 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-lg-center">
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('site.index') }}">Início</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_inicio() }}">Início</a></li>
                 {% for p in menu_paginas %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('site.pagina', slug=p.slug) }}">{{ p.titulo }}</a>

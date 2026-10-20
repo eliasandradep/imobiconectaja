@@ -105,6 +105,8 @@ def create_app():
         from flask import session
         host = request.host.split(':')[0].lower()
         g.imobiliaria = _resolver_imobiliaria(host, app)
+        # True quando a imobiliária veio do domínio/subdomínio (a raiz "/" já é o site dela)
+        g.site_por_host = g.imobiliaria is not None
 
         # Fallback para navegação em desenvolvimento (host da plataforma):
         # restaura a imobiliária gravada na sessão para as rotas do site público,
@@ -131,12 +133,25 @@ def create_app():
         # fallback desenvolvimento: roteamento por slug no path
         return f'/{imob.slug}/'
 
+    # ── Helper: URL da página inicial do site da imobiliária atual ─
+    def url_inicio_site():
+        """
+        Página inicial do site da imobiliária em contexto.
+        Acessada pelo domínio/subdomínio dela → "/"; acessada pelo host da
+        plataforma (/{slug}/) → "/{slug}/", pois "/" ali é a landing page.
+        """
+        from flask import url_for
+        imob = getattr(g, 'imobiliaria', None)
+        if imob and not getattr(g, 'site_por_host', False) and imob.slug:
+            return url_for('site.slug_site', slug=imob.slug)
+        return url_for('site.index')
+
     # ── Context processor: menu dinâmico + badge de leads novos ────
     @app.context_processor
     def injetar_contexto():
         from app.superadmin.routes import PLANOS_CONFIG
         extras = {'config': app.config, 'url_site_imob': url_site_imobiliaria,
-                  'planos_config': PLANOS_CONFIG}
+                  'url_inicio': url_inicio_site, 'planos_config': PLANOS_CONFIG}
 
         if not getattr(g, 'imobiliaria', None):
             return {**extras, 'menu_links': [], 'menu_paginas': [], 'leads_novos_count': 0}

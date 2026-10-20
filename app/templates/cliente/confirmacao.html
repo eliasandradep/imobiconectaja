@@ -21,7 +21,7 @@
     {% with msgs = get_flashed_messages(with_categories=true) %}
       {% for cat, msg in msgs %}<div class="alert alert-{{ cat }}">{{ msg }}</div>{% endfor %}
     {% endwith %}
-    <a href="{{ url_for('site.index') }}" class="btn btn-outline-secondary mt-2">
+    <a href="{{ url_inicio() }}" class="btn btn-outline-secondary mt-2">
       <i class="bi bi-house me-1"></i> Ir para o site
     </a>
   </div>

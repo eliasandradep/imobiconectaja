@@ -11,7 +11,7 @@
 
 {# ── Macro: formulário de busca ─────────────────────────────────────── #}
 {% macro form_busca(modo='horizontal') %}
-<form method="GET" action="{{ url_for('site.index') }}"
+<form method="GET" action="{{ url_inicio() }}"
       class="{{ 'py-3 px-2' if modo == 'horizontal' else 'p-0' }}">
     <div class="{{ 'd-flex flex-wrap gap-2 align-items-end' if modo == 'horizontal' else 'd-flex flex-column gap-3' }}">
 
@@ -67,7 +67,7 @@
                 <i class="bi bi-search me-1"></i>{{ ' Buscar' if modo == 'vertical' else '' }}
             </button>
             {% if filtros_ativos %}
-            <a href="{{ url_for('site.index') }}" class="btn btn-outline-secondary btn-sm px-2"
+            <a href="{{ url_inicio() }}" class="btn btn-outline-secondary btn-sm px-2"
                title="Limpar filtros"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </div>
@@ -185,7 +185,7 @@
             <i class="bi bi-funnel-fill me-1 text-primary"></i>
             Exibindo <strong>{{ pagination.total }}</strong> imóve{{ 'l' if pagination.total == 1 else 'is' }} encontrado{{ '' if pagination.total == 1 else 's' }}
         </p>
-        <a href="{{ url_for('site.index') }}" class="btn btn-outline-secondary btn-sm">
+        <a href="{{ url_inicio() }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-x-lg me-1"></i> Limpar filtros
         </a>
     </div>

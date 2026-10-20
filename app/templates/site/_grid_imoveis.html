@@ -39,7 +39,7 @@
         <h5 class="mt-3 text-muted">Nenhum imóvel encontrado</h5>
         {% if filtros_ativos %}
         <p class="text-muted small">Tente ajustar os filtros de busca.</p>
-        <a href="{{ url_for('site.index') }}" class="btn btn-outline-secondary btn-sm mt-1">
+        <a href="{{ url_inicio() }}" class="btn btn-outline-secondary btn-sm mt-1">
             Limpar filtros
         </a>
         {% endif %}
