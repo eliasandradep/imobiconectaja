@@ -1,37 +1,51 @@
 """
 Webhook para integração com Evolution API (WhatsApp).
-Gerencia estado de conversa em memória (substituível por Redis em produção).
+
+Isolamento por imobiliária (tenant):
+  - cada imobiliária tem a própria instância/número na Evolution
+    (evolution_instance / evolution_apikey / evolution_url);
+  - o webhook de cada instância aponta para /webhook/whatsapp/<webhook_token>,
+    um token exclusivo do webhook (não é o token da API REST);
+  - o estado da conversa fica no banco (ConversaBot), por imobiliária + telefone.
 
 Fluxo:
   INICIO → pede CPF → identifica/cadastra cliente → pede finalidade
   → coleta descrição → IA extrai dados → confirma → pede fotos → CONCLUIDO
 """
-import os, uuid, json, requests as req
+import base64, json, os, uuid
+from datetime import datetime, timedelta
+
+import requests as req
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Imobiliaria, Pessoa, TelefonePessoa, Imovel, TipoImovel, Foto
+from sqlalchemy.exc import IntegrityError
+
+from ..models import db, Imobiliaria, Pessoa, TelefonePessoa, Foto, ConversaBot
 
 whatsapp_bp = Blueprint('whatsapp', __name__)
 
-# Estado de conversa em memória (use Redis em produção)
-_conversas: dict[str, dict] = {}
-
 ETAPAS = ['INICIO', 'CPF', 'NOME', 'FINALIDADE', 'DESCRICAO', 'CONFIRMACAO', 'FOTOS', 'CONCLUIDO']
 
+# Conversa parada há mais tempo que isso recomeça do início
+EXPIRACAO_CONVERSA = timedelta(hours=24)
 
-def _estado(numero: str) -> dict:
-    if numero not in _conversas:
-        _conversas[numero] = {'etapa': 'INICIO', 'dados': {}, 'msgs': []}
-    return _conversas[numero]
+
+# ── Evolution API (sempre com a instância da imobiliária) ────────────────────
+
+def _evolution(imob: Imobiliaria):
+    """(url_base, instancia, apikey) da imobiliária, ou None se não configurada."""
+    base = (imob.evolution_url or current_app.config.get('EVOLUTION_API_URL', '')).rstrip('/')
+    if not base or not imob.evolution_instance or not imob.evolution_apikey:
+        return None
+    return base, imob.evolution_instance, imob.evolution_apikey
 
 
 def _enviar(numero: str, texto: str, imob: Imobiliaria):
-    """Envia mensagem de texto via Evolution API."""
-    base = current_app.config.get('EVOLUTION_API_URL', '').rstrip('/')
-    key  = current_app.config.get('EVOLUTION_API_KEY', '')
-    inst = current_app.config.get('EVOLUTION_INSTANCE', '')
-    if not base or not inst:
-        current_app.logger.warning('Evolution API não configurada.')
+    """Envia mensagem de texto pelo número da própria imobiliária."""
+    cfg = _evolution(imob)
+    if not cfg:
+        current_app.logger.warning(f'Evolution não configurada para a imobiliária {imob.id}.')
         return
+    base, inst, key = cfg
     try:
         req.post(
             f'{base}/message/sendText/{inst}',
@@ -40,21 +54,38 @@ def _enviar(numero: str, texto: str, imob: Imobiliaria):
             timeout=10,
         )
     except Exception as e:
-        current_app.logger.error(f'Erro ao enviar WhatsApp: {e}')
+        current_app.logger.error(f'Erro ao enviar WhatsApp (imobiliária {imob.id}): {e}')
 
 
-def _baixar_midia(url: str, destino: str):
-    """Baixa arquivo de mídia da Evolution API e salva localmente."""
-    key = current_app.config.get('EVOLUTION_API_KEY', '')
+def _baixar_midia(msg_data: dict, imob: Imobiliaria) -> bytes | None:
+    """
+    Obtém a imagem recebida. A URL da mídia do WhatsApp vem criptografada, então
+    usa o base64 do webhook (se a instância envia) ou pede à Evolution o conteúdo
+    já descriptografado (getBase64FromMediaMessage).
+    """
+    b64 = msg_data.get('message', {}).get('base64')
+    if not b64:
+        cfg = _evolution(imob)
+        if not cfg:
+            return None
+        base, inst, key = cfg
+        try:
+            r = req.post(
+                f'{base}/chat/getBase64FromMediaMessage/{inst}',
+                headers={'apikey': key, 'Content-Type': 'application/json'},
+                json={'message': {'key': msg_data.get('key', {})}, 'convertToMp4': False},
+                timeout=30,
+            )
+            if r.status_code in (200, 201):
+                b64 = r.json().get('base64')
+        except Exception as e:
+            current_app.logger.error(f'Erro ao baixar mídia (imobiliária {imob.id}): {e}')
+    if not b64:
+        return None
     try:
-        r = req.get(url, headers={'apikey': key}, timeout=30)
-        if r.status_code == 200:
-            with open(destino, 'wb') as f:
-                f.write(r.content)
-            return True
-    except Exception as e:
-        current_app.logger.error(f'Erro ao baixar mídia: {e}')
-    return False
+        return base64.b64decode(b64.split(',')[-1])
+    except Exception:
+        return None
 
 
 def _extrair_ia(texto: str, imob_id: int) -> dict:
@@ -63,18 +94,39 @@ def _extrair_ia(texto: str, imob_id: int) -> dict:
     return _extrair_imovel_ia(texto, imob_id)
 
 
-def _resolver_imob(numero: str) -> Imobiliaria | None:
-    """Tenta encontrar a imobiliária pelo estado da conversa ou pelo host."""
-    conv = _estado(numero)
-    imob_id = conv.get('imob_id')
-    if imob_id:
-        return Imobiliaria.query.get(imob_id)
-    return None
+# ── Estado da conversa (banco, por imobiliária + telefone) ───────────────────
+
+def _carregar_conversa(imob: Imobiliaria, numero: str) -> ConversaBot:
+    conversa = ConversaBot.query.filter_by(imobiliaria_id=imob.id, telefone=numero).first()
+    if conversa and conversa.atualizado_em and \
+            datetime.utcnow() - conversa.atualizado_em > EXPIRACAO_CONVERSA:
+        conversa.etapa, conversa.dados_json = 'INICIO', '{}'
+    if not conversa:
+        conversa = ConversaBot(imobiliaria_id=imob.id, telefone=numero,
+                               etapa='INICIO', dados_json='{}')
+        db.session.add(conversa)
+        try:
+            db.session.commit()
+        except IntegrityError:          # duas mensagens simultâneas criaram a conversa
+            db.session.rollback()
+            conversa = ConversaBot.query.filter_by(imobiliaria_id=imob.id, telefone=numero).first()
+    return conversa
 
 
-def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
-               imob: Imobiliaria):
-    conv  = _estado(numero)
+def _salvar_conversa(conversa: ConversaBot, conv: dict):
+    if conv['etapa'] == 'CONCLUIDO':
+        db.session.delete(conversa)
+    else:
+        conversa.etapa = conv['etapa']
+        conversa.dados_json = json.dumps(conv['dados'], ensure_ascii=False, default=str)
+        conversa.atualizado_em = datetime.utcnow()
+    db.session.commit()
+
+
+# ── Máquina de estados ───────────────────────────────────────────────────────
+
+def _processar(conv: dict, numero: str, tipo_msg: str, conteudo: str,
+               msg_data: dict, imob: Imobiliaria):
     etapa = conv['etapa']
     dados = conv['dados']
 
@@ -86,7 +138,6 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
 
     # ── INICIO ────────────────────────────────────────────────────────────────
     if etapa == 'INICIO':
-        conv['imob_id'] = imob.id
         responder(
             f'Olá! Bem-vindo à *{imob.nome}*.\n\n'
             'Vou te ajudar a cadastrar seu imóvel em poucos passos.\n\n'
@@ -126,7 +177,6 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
         if len(nome) < 3:
             responder('Por favor, informe seu nome completo:')
             return
-        dados['nome'] = nome
         pessoa = Pessoa(
             imobiliaria_id=imob.id,
             nome=nome,
@@ -168,8 +218,7 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
     # ── DESCRICAO ─────────────────────────────────────────────────────────────
     if etapa == 'DESCRICAO':
         # Acumula mensagens de descrição
-        dados.setdefault('descricao_raw', '')
-        dados['descricao_raw'] += ' ' + conteudo
+        dados['descricao_raw'] = (dados.get('descricao_raw', '') + ' ' + conteudo).strip()
 
         responder('⏳ Analisando a descrição com IA, aguarde um momento...')
 
@@ -178,8 +227,8 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
 
         if not extraido or 'erro' in extraido:
             responder(
-                'Não consegui extrair as informações. '
-                'Tente descrever novamente com mais detalhes:'
+                (extraido or {}).get('erro')
+                or 'Não consegui extrair as informações. Tente descrever novamente com mais detalhes:'
             )
             return
 
@@ -196,7 +245,7 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
             f'📐 Área terreno: {extraido.get("area_terreno", "-")} m²\n'
         )
         if extraido.get('preco'):
-            resumo += f'💰 Preço: R$ {extraido["preco"]:,.0f}\n'
+            resumo += f'💰 Preço: R$ {float(extraido["preco"]):,.0f}\n'.replace(',', '.')
 
         resumo += '\nAs informações estão corretas?\n*1 - Sim, continuar*\n*2 - Não, descrever novamente*'
         responder(resumo)
@@ -235,8 +284,10 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
 
     # ── FOTOS ─────────────────────────────────────────────────────────────────
     if etapa == 'FOTOS':
+        imovel_id = dados.get('imovel_id')
+
         if conteudo.strip().lower() in ('pronto', 'ok', 'fim', 'finalizar', 'concluir'):
-            total = dados.get('fotos_count', 0)
+            total = Foto.query.filter_by(imovel_id=imovel_id).count() if imovel_id else 0
             responder(
                 f'✅ *Cadastro concluído com sucesso!*\n\n'
                 f'Recebemos {total} foto(s) do seu imóvel.\n'
@@ -244,91 +295,109 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
                 f'Obrigado por escolher a *{imob.nome}*! 🏠'
             )
             avancar('CONCLUIDO')
-            _conversas.pop(numero, None)
             return
 
-        if tipo_msg == 'image' and media_url:
-            imovel_id = dados.get('imovel_id')
-            if imovel_id:
-                upload_dir = os.path.join(
-                    'app', 'static', 'uploads', str(imob.id), 'imoveis', str(imovel_id)
-                )
-                os.makedirs(upload_dir, exist_ok=True)
-                nome_arquivo = f'{uuid.uuid4().hex}.jpg'
-                caminho = os.path.join(upload_dir, nome_arquivo)
-                if _baixar_midia(media_url, caminho):
-                    count = dados.get('fotos_count', 0)
-                    db.session.add(Foto(
-                        imovel_id=imovel_id,
-                        url=f'uploads/{imob.id}/imoveis/{imovel_id}/{nome_arquivo}',
-                        principal=(count == 0),
-                    ))
-                    db.session.commit()
-                    dados['fotos_count'] = count + 1
-                    responder(f'📸 Foto {count + 1} recebida! Envie mais ou escreva *"pronto"* para finalizar.')
+        if tipo_msg == 'image' and imovel_id:
+            conteudo_img = _baixar_midia(msg_data, imob)
+            if not conteudo_img:
+                responder('Não consegui receber essa foto. Pode enviar novamente?')
+                return
+            upload_dir = os.path.join(
+                current_app.root_path, 'static', 'uploads', str(imob.id), 'imoveis', str(imovel_id)
+            )
+            os.makedirs(upload_dir, exist_ok=True)
+            nome_arquivo = f'{uuid.uuid4().hex}.jpg'
+            with open(os.path.join(upload_dir, nome_arquivo), 'wb') as f:
+                f.write(conteudo_img)
+            ja_tem_fotos = Foto.query.filter_by(imovel_id=imovel_id).count() > 0
+            db.session.add(Foto(
+                imovel_id=imovel_id,
+                url=f'uploads/{imob.id}/imoveis/{imovel_id}/{nome_arquivo}',
+                principal=not ja_tem_fotos,
+            ))
+            db.session.commit()
+            total = Foto.query.filter_by(imovel_id=imovel_id).count()
+            responder(f'📸 Foto {total} recebida! Envie mais ou escreva *"pronto"* para finalizar.')
         return
 
 
 # ── WEBHOOK ───────────────────────────────────────────────────────────────────
 
-@whatsapp_bp.route('/webhook/whatsapp', methods=['GET', 'POST'])
-def webhook():
+def _ler_mensagem(payload: dict):
+    """Extrai (numero, tipo_msg, conteudo, msg_data) do evento da Evolution, ou None."""
+    if payload.get('event', '') not in ('messages.upsert', 'message'):
+        return None
+    msg_data = payload.get('data', {}) or {}
+    key = msg_data.get('key', {}) or {}
+    if key.get('fromMe', False):
+        return None
+    jid = key.get('remoteJid', '')
+    if not jid or jid.endswith('@g.us'):          # ignora grupos
+        return None
+    numero  = jid.split('@')[0]
+    msg_obj = msg_data.get('message', {}) or {}
+
+    tipo_msg, conteudo = 'text', ''
+    if 'conversation' in msg_obj:
+        conteudo = msg_obj['conversation']
+    elif 'extendedTextMessage' in msg_obj:
+        conteudo = msg_obj['extendedTextMessage'].get('text', '')
+    elif 'imageMessage' in msg_obj:
+        tipo_msg = 'image'
+        conteudo = msg_obj['imageMessage'].get('caption', '')
+    elif 'documentMessage' in msg_obj:
+        tipo_msg = 'document'
+        conteudo = msg_obj['documentMessage'].get('caption', '')
+    return numero, tipo_msg, conteudo or '', msg_data
+
+
+@whatsapp_bp.route('/webhook/whatsapp/<token>', methods=['GET', 'POST'])
+def webhook(token):
+    imob = Imobiliaria.query.filter_by(webhook_token=token, ativo=True).first() if token else None
+    if not imob:
+        return jsonify({'ok': False, 'erro': 'webhook inválido'}), 404
+
     if request.method == 'GET':
-        return jsonify({'status': 'ok', 'servico': 'ImobiConectaJa WhatsApp Webhook'})
+        return jsonify({'status': 'ok', 'servico': 'ImobiConectaJa WhatsApp Webhook',
+                        'imobiliaria': imob.nome})
+
+    from ..planos import plano_permite
+    if not plano_permite(imob, 'chatbot'):
+        return jsonify({'ok': True, 'aviso': 'plano sem atendimento por bot'})
 
     payload = request.get_json(silent=True) or {}
-    current_app.logger.debug(f'WA webhook: {json.dumps(payload)[:500]}')
+
+    # O evento precisa vir da instância desta imobiliária
+    instancia = payload.get('instance')
+    if instancia and imob.evolution_instance and instancia != imob.evolution_instance:
+        current_app.logger.warning(
+            f'Webhook da imobiliária {imob.id} recebeu evento da instância "{instancia}".')
+        return jsonify({'ok': False, 'erro': 'instância não pertence a esta imobiliária'}), 403
 
     try:
-        evento = payload.get('event', '')
-        if evento not in ('messages.upsert', 'message'):
+        lido = _ler_mensagem(payload)
+        if not lido:
             return jsonify({'ok': True})
+        numero, tipo_msg, conteudo, msg_data = lido
 
-        msg_data = payload.get('data', {})
-        key      = msg_data.get('key', {})
-        from_me  = key.get('fromMe', False)
-        if from_me:
-            return jsonify({'ok': True})
-
-        numero   = key.get('remoteJid', '').split('@')[0]
-        msg_obj  = msg_data.get('message', {})
-
-        tipo_msg  = 'text'
-        conteudo  = ''
-        media_url = None
-
-        if 'conversation' in msg_obj:
-            conteudo = msg_obj['conversation']
-        elif 'extendedTextMessage' in msg_obj:
-            conteudo = msg_obj['extendedTextMessage'].get('text', '')
-        elif 'imageMessage' in msg_obj:
-            tipo_msg  = 'image'
-            media_url = msg_obj['imageMessage'].get('url')
-            conteudo  = msg_obj['imageMessage'].get('caption', '')
-        elif 'documentMessage' in msg_obj:
-            tipo_msg = 'document'
-            conteudo = msg_obj['documentMessage'].get('caption', '')
-
-        # Resolve a imobiliária pelo token do webhook (header ou query param)
-        token = (request.headers.get('X-Imob-Token')
-                 or request.args.get('token', ''))
-        imob = Imobiliaria.query.filter_by(api_token=token, ativo=True).first()
-
-        if not imob:
-            conv = _estado(numero)
-            imob_id = conv.get('imob_id')
-            imob = Imobiliaria.query.get(imob_id) if imob_id else None
-
-        if not imob:
-            return jsonify({'ok': True, 'aviso': 'imobiliária não identificada'})
-
-        from ..planos import plano_permite
-        if not plano_permite(imob, 'chatbot'):
-            return jsonify({'ok': True, 'aviso': 'plano sem atendimento por bot'})
-
-        _processar(numero, tipo_msg, conteudo, media_url, imob)
+        conversa = _carregar_conversa(imob, numero)
+        conv = {'etapa': conversa.etapa, 'dados': json.loads(conversa.dados_json or '{}')}
+        _processar(conv, numero, tipo_msg, conteudo, msg_data, imob)
+        _salvar_conversa(conversa, conv)
 
     except Exception as e:
-        current_app.logger.error(f'Erro no webhook WhatsApp: {e}', exc_info=True)
+        db.session.rollback()
+        current_app.logger.error(f'Erro no webhook WhatsApp (imobiliária {imob.id}): {e}', exc_info=True)
 
     return jsonify({'ok': True})
+
+
+@whatsapp_bp.route('/webhook/whatsapp', methods=['GET', 'POST'])
+def webhook_legado():
+    """
+    Endereço antigo (identificava a imobiliária pelo token da API REST).
+    Desativado: cada instância deve usar /webhook/whatsapp/<webhook_token>.
+    """
+    if request.method == 'POST':
+        current_app.logger.warning('Evento recebido no webhook legado /webhook/whatsapp — ignorado.')
+    return jsonify({'ok': False, 'erro': 'Use /webhook/whatsapp/<token> da imobiliária.'}), 410

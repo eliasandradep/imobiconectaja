@@ -188,7 +188,7 @@ def nova_imobiliaria():
     if request.method == 'POST':
         nome      = request.form.get('nome', '').strip()
         dominio   = request.form.get('dominio', '').strip().lower()
-        plano     = request.form.get('plano', 'basico')
+        plano     = request.form.get('plano', 'basic')
         adm_nome  = request.form.get('adm_nome', '').strip()
         adm_email = request.form.get('adm_email', '').strip().lower()
         adm_senha = request.form.get('adm_senha', '').strip()
@@ -302,7 +302,19 @@ def editar_imobiliaria(id):
         imob.dominio              = novo_dominio
         imob.slug                 = novo_slug
         imob.dominio_personalizado= request.form.get('dominio_personalizado','').strip().lower() or None
-        imob.plano                = request.form.get('plano', 'basico')
+        imob.plano                = request.form.get('plano', 'basic')
+
+        # WhatsApp (Evolution) — instância e webhook exclusivos da imobiliária
+        imob.evolution_instance = request.form.get('evolution_instance', '').strip() or None
+        imob.evolution_url      = request.form.get('evolution_url', '').strip().rstrip('/') or None
+        nova_apikey = request.form.get('evolution_apikey', '').strip()
+        if nova_apikey:
+            imob.evolution_apikey = nova_apikey
+        elif request.form.get('evolution_apikey_limpar'):
+            imob.evolution_apikey = None
+        if imob.evolution_instance and (not imob.webhook_token or request.form.get('webhook_token_novo')):
+            import secrets
+            imob.webhook_token = secrets.token_urlsafe(32)
         db.session.commit()
         flash('Imobiliária atualizada!', 'success')
         return redirect(url_for('superadmin.dashboard'))

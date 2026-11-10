@@ -30,12 +30,18 @@ def _validar_cpf(cpf: str) -> str | None:
 
 
 def _extrair_imovel_ia(texto: str, imob_id: int) -> dict:
-    """Chama a Claude API e retorna JSON com os dados do imóvel extraídos do texto."""
+    """
+    Chama a Claude API e retorna JSON com os dados do imóvel extraídos do texto.
+    Usa a chave Anthropic da imobiliária; sem ela, usa a da plataforma e consome
+    1 crédito de IA do plano (ver app/planos.py).
+    """
     import anthropic
+    from ..planos import chave_ia, consumir_credito_ia
 
-    api_key = current_app.config.get('ANTHROPIC_API_KEY') or os.environ.get('ANTHROPIC_API_KEY')
+    imob = Imobiliaria.query.get(imob_id)
+    api_key, consome_credito = chave_ia(imob)
     if not api_key:
-        return {"erro": "ANTHROPIC_API_KEY não configurada."}
+        return {"erro": consome_credito}
 
     client = anthropic.Anthropic(api_key=api_key)
 
@@ -71,20 +77,27 @@ def _extrair_imovel_ia(texto: str, imob_id: int) -> dict:
         },
     }
 
-    resposta = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        tools=[ferramenta],
-        messages=[{
-            "role": "user",
-            "content": (
-                "Você é um assistente especializado em imóveis brasileiros. "
-                "Analise a descrição abaixo e extraia todos os dados do imóvel.\n\n"
-                f"Descrição: {texto}"
-            ),
-        }],
-        tool_choice={"type": "any"},
-    )
+    try:
+        resposta = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            tools=[ferramenta],
+            messages=[{
+                "role": "user",
+                "content": (
+                    "Você é um assistente especializado em imóveis brasileiros. "
+                    "Analise a descrição abaixo e extraia todos os dados do imóvel.\n\n"
+                    f"Descrição: {texto}"
+                ),
+            }],
+            tool_choice={"type": "any"},
+        )
+    except Exception as e:
+        current_app.logger.error(f'Erro na extração por IA (imobiliária {imob_id}): {e}')
+        return {"erro": "Não foi possível analisar a descrição agora. Tente novamente."}
+
+    if consome_credito:
+        consumir_credito_ia(imob)
 
     for bloco in resposta.content:
         if bloco.type == "tool_use" and bloco.name == "cadastrar_imovel":

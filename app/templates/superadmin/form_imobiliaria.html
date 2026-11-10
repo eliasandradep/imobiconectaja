@@ -136,6 +136,62 @@
                 <i class="bi bi-people me-1"></i> Gerenciar Usuários
             </a>
         </div>
+
+        {# ── WhatsApp (bot de cadastro) — uma instância por imobiliária ── #}
+        <div class="form-card mt-3">
+            <div class="section-label"><i class="bi bi-whatsapp me-1"></i> Bot de WhatsApp</div>
+            {% if not plano_permite(imob, 'chatbot') %}
+            <div class="alert alert-warning small py-2">
+                O plano atual não inclui atendimento por bot. O webhook ignora mensagens até o plano ser alterado.
+            </div>
+            {% endif %}
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold small">Instância na Evolution API</label>
+                    <input type="text" name="evolution_instance" class="form-control"
+                           placeholder="ex: imobiliaria-dois" value="{{ imob.evolution_instance or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold small">API key da instância</label>
+                    <input type="password" name="evolution_apikey" class="form-control" autocomplete="new-password"
+                           placeholder="{{ '•••••••• (configurada — deixe vazio para manter)' if imob.evolution_apikey else 'Cole a apikey da instância' }}">
+                    {% if imob.evolution_apikey %}
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" type="checkbox" name="evolution_apikey_limpar" id="limparKey">
+                        <label class="form-check-label small" for="limparKey">Remover a apikey</label>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold small">URL da Evolution <span class="text-muted fw-normal">(opcional)</span></label>
+                    <input type="url" name="evolution_url" class="form-control"
+                           placeholder="vazio = servidor padrão da plataforma" value="{{ imob.evolution_url or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold small">URL do webhook</label>
+                    {% if imob.webhook_token %}
+                    <input type="text" class="form-control form-control-sm font-monospace" readonly onclick="this.select()"
+                           value="https://{{ request.host }}{{ url_for('whatsapp.webhook', token=imob.webhook_token) }}">
+                    <div class="form-text">Configure este endereço como webhook da instância (evento <code>MESSAGES_UPSERT</code>).</div>
+                    <div class="form-check mt-1">
+                        <input class="form-check-input" type="checkbox" name="webhook_token_novo" id="novoToken">
+                        <label class="form-check-label small" for="novoToken">Gerar novo endereço (o atual deixa de funcionar)</label>
+                    </div>
+                    {% else %}
+                    <div class="form-text">Gerado automaticamente ao salvar com a instância preenchida.</div>
+                    {% endif %}
+                </div>
+                <div class="col-12 small text-muted">
+                    <i class="bi bi-stars me-1"></i>
+                    {% if imob.anthropic_api_key %}
+                    IA: usa a chave Anthropic da própria imobiliária (sem limite de créditos).
+                    {% else %}
+                    Créditos de IA neste mês: <strong>{{ creditos_ia_usados(imob) }}</strong> de {{ plano_da(imob).get('ia_creditos', 0) }}
+                    (chave da plataforma).
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
 

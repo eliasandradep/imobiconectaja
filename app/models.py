@@ -11,7 +11,7 @@ class Imobiliaria(db.Model):
     dominio    = db.Column(db.String(100), unique=True, nullable=False)
     api_token  = db.Column(db.String(100), unique=True, nullable=False)
     ativo                 = db.Column(db.Boolean, default=True)
-    plano                 = db.Column(db.String(30),  default='basico')
+    plano                 = db.Column(db.String(30),  default='basic')
     criado_em             = db.Column(db.DateTime,    default=datetime.utcnow)
     # Domínios
     slug                  = db.Column(db.String(80),  unique=True)   # ex: "imob-master" → imob-master.imobiconectaja.com.br
@@ -31,6 +31,11 @@ class Imobiliaria(db.Model):
     ordenacao_imoveis  = db.Column(db.String(20),  default='recentes')  # recentes|destaque|preco_asc|preco_desc
     imoveis_por_pagina = db.Column(db.Integer,     default=9)
     anthropic_api_key  = db.Column(db.String(200))
+    # WhatsApp (Evolution API) — cada imobiliária tem a própria instância/número
+    evolution_url      = db.Column(db.String(255))   # vazio = EVOLUTION_API_URL global
+    evolution_instance = db.Column(db.String(100))   # nome da instância na Evolution
+    evolution_apikey   = db.Column(db.String(200))   # apikey da instância
+    webhook_token      = db.Column(db.String(64))    # identifica a imobiliária no webhook
 
     usuarios     = db.relationship('Usuario',    backref='imobiliaria', lazy=True)
     imoveis      = db.relationship('Imovel',     backref='imobiliaria', lazy=True)
@@ -296,3 +301,33 @@ class MenuLink(db.Model):
     ordem          = db.Column(db.Integer, default=0)
     ativo          = db.Column(db.Boolean, default=True)
     abre_nova_aba  = db.Column(db.Boolean, default=False)
+
+class ConversaBot(db.Model):
+    """
+    Estado da conversa do bot de WhatsApp, isolado por imobiliária + telefone.
+    Fica no banco para sobreviver a deploys e funcionar com vários workers.
+    """
+    __tablename__ = 'conversas_bot'
+    id             = db.Column(db.Integer, primary_key=True)
+    imobiliaria_id = db.Column(db.Integer, db.ForeignKey('imobiliarias.id'), nullable=False)
+    telefone       = db.Column(db.String(30), nullable=False)
+    etapa          = db.Column(db.String(20), nullable=False, default='INICIO')
+    dados_json     = db.Column(db.Text, default='{}')
+    atualizado_em  = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('imobiliaria_id', 'telefone', name='uq_conversa_imob_telefone'),
+    )
+
+
+class UsoIA(db.Model):
+    """Consumo mensal de créditos de IA da plataforma, por imobiliária."""
+    __tablename__ = 'uso_ia'
+    id             = db.Column(db.Integer, primary_key=True)
+    imobiliaria_id = db.Column(db.Integer, db.ForeignKey('imobiliarias.id'), nullable=False)
+    mes            = db.Column(db.String(7), nullable=False)    # 'AAAA-MM'
+    usos           = db.Column(db.Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        db.UniqueConstraint('imobiliaria_id', 'mes', name='uq_uso_ia_imob_mes'),
+    )

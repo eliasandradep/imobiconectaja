@@ -151,10 +151,11 @@ def create_app():
     @app.context_processor
     def injetar_contexto():
         from app.superadmin.routes import PLANOS_CONFIG
-        from app.planos import plano_permite
+        from app.planos import plano_permite, plano_da, creditos_ia_usados
         extras = {'config': app.config, 'url_site_imob': url_site_imobiliaria,
                   'url_inicio': url_inicio_site, 'planos_config': PLANOS_CONFIG,
-                  'plano_permite': plano_permite}
+                  'plano_permite': plano_permite, 'plano_da': plano_da,
+                  'creditos_ia_usados': creditos_ia_usados}
 
         if not getattr(g, 'imobiliaria', None):
             return {**extras, 'menu_links': [], 'menu_paginas': [], 'leads_novos_count': 0}
