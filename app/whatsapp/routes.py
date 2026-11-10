@@ -213,37 +213,15 @@ def _processar(numero: str, tipo_msg: str, conteudo: str, media_url: str | None,
             avancar('DESCRICAO')
             return
 
-        # Salva o imóvel
-        extraido = dados.get('extraido', {})
-        tipo_nome = extraido.get('tipo', '')
-        tipo = TipoImovel.query.filter_by(imobiliaria_id=imob.id, nome=tipo_nome).first()
-        if not tipo:
-            tipo = TipoImovel.query.filter_by(imobiliaria_id=imob.id).first()
-
-        if not tipo:
+        # Salva o imóvel (entra como pendente de aprovação, ligado ao proprietário)
+        from ..cliente.routes import criar_imovel_proprietario
+        extraido = dict(dados.get('extraido', {}))
+        extraido['finalidade'] = dados['finalidade']
+        extraido['descricao'] = extraido.get('descricao') or dados.get('descricao_raw', '')
+        imovel = criar_imovel_proprietario(imob, dados.get('pessoa_id'), extraido, origem='WhatsApp')
+        if not imovel:
             responder('Erro: nenhum tipo de imóvel cadastrado. Contate a imobiliária.')
             return
-
-        imovel = Imovel(
-            imobiliaria_id=imob.id,
-            tipo_id=tipo.id,
-            titulo=extraido.get('titulo') or f'{tipo_nome} para {dados["finalidade"]}',
-            finalidade=dados['finalidade'],
-            cidade=extraido.get('cidade', '')[:100],
-            estado=extraido.get('estado', '')[:2],
-            bairro=extraido.get('bairro', '')[:100],
-            logradouro=extraido.get('logradouro', '')[:200],
-            cep=extraido.get('cep', '')[:10],
-            quartos=int(extraido.get('quartos') or 0),
-            suites=int(extraido.get('suites') or 0),
-            banheiros=int(extraido.get('banheiros') or 0),
-            vagas=int(extraido.get('vagas') or 0),
-            area_construida=extraido.get('area_construida') or None,
-            area_terreno=extraido.get('area_terreno') or None,
-            preco=extraido.get('preco') or None,
-            descricao=extraido.get('descricao') or dados.get('descricao_raw', ''),
-        )
-        db.session.add(imovel)
         db.session.commit()
         dados['imovel_id'] = imovel.id
 
@@ -343,6 +321,10 @@ def webhook():
 
         if not imob:
             return jsonify({'ok': True, 'aviso': 'imobiliária não identificada'})
+
+        from ..planos import plano_permite
+        if not plano_permite(imob, 'chatbot'):
+            return jsonify({'ok': True, 'aviso': 'plano sem atendimento por bot'})
 
         _processar(numero, tipo_msg, conteudo, media_url, imob)
 

@@ -6,10 +6,14 @@ cliente_bp = Blueprint('cliente', __name__)
 
 
 def _imobiliaria_ou_404():
-    """Resolve a imobiliária pelo contexto (subdomínio ou slug na sessão)."""
+    """
+    Resolve a imobiliária pelo contexto (domínio/subdomínio ou slug na sessão).
+    O portal de cadastro pelo proprietário só existe nos planos com chatbot.
+    """
     from flask import g, abort
+    from ..planos import plano_permite
     imob = getattr(g, 'imobiliaria', None)
-    if not imob:
+    if not imob or not plano_permite(imob, 'chatbot'):
         abort(404)
     return imob
 
@@ -89,7 +93,82 @@ def _extrair_imovel_ia(texto: str, imob_id: int) -> dict:
     return {}
 
 
+def _num(v):
+    """Converte número vindo da IA ou de formulário (aceita '550.000,00', '550000', 120.5)."""
+    if v in (None, ''):
+        return 0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = ''.join(c for c in str(v) if c.isdigit() or c in ',.')
+    if ',' in s:                       # formato brasileiro: ponto = milhar, vírgula = decimal
+        s = s.replace('.', '').replace(',', '.')
+    elif s.count('.') > 1 or (s.count('.') == 1 and len(s.split('.')[1]) == 3):
+        s = s.replace('.', '')         # '550.000' / '1.250.000' → separador de milhar
+    try:
+        return float(s) if s else 0
+    except ValueError:
+        return 0
+
+
+def criar_imovel_proprietario(imob, pessoa_id, dados, origem):
+    """
+    Cria o imóvel enviado pelo próprio proprietário (WhatsApp ou portal).
+    Entra como 'pendente': só aparece no site depois que o corretor aprova.
+    `dados` usa os nomes da extração por IA (area_construida, area_terreno...).
+    Retorna o Imovel (sem commit) ou None se a imobiliária não tem tipos cadastrados.
+    """
+    tipos = TipoImovel.query.filter_by(imobiliaria_id=imob.id).all()
+    nome_tipo = (dados.get('tipo') or '').strip().lower()
+    tipo = next((t for t in tipos if t.nome.lower() == nome_tipo), None) or (tipos[0] if tipos else None)
+    if not tipo:
+        return None
+
+    finalidade = dados.get('finalidade')
+    if finalidade not in ('Venda', 'Locação', 'Venda e Locação'):
+        finalidade = 'Venda'
+
+    ultimo = Imovel.query.filter_by(imobiliaria_id=imob.id).order_by(Imovel.id.desc()).first()
+    codigo_ref = f"{tipo.prefixo}{((ultimo.id + 1) if ultimo else 1):04d}"
+
+    imovel = Imovel(
+        imobiliaria_id=imob.id,
+        tipo_id=tipo.id,
+        codigo_ref=codigo_ref,
+        titulo=(dados.get('titulo') or f'{tipo.nome} para {finalidade}')[:200],
+        finalidade=finalidade,
+        cidade=(dados.get('cidade') or '')[:100],
+        estado=(dados.get('estado') or '')[:2].upper(),
+        bairro=(dados.get('bairro') or '')[:100],
+        logradouro=(dados.get('logradouro') or '')[:200],
+        cep=(dados.get('cep') or '')[:10],
+        quartos=int(_num(dados.get('quartos'))),
+        suites=int(_num(dados.get('suites'))),
+        banheiros=int(_num(dados.get('banheiros'))),
+        vagas=int(_num(dados.get('vagas'))),
+        area_util=_num(dados.get('area_construida')),
+        area_total=_num(dados.get('area_terreno')) or _num(dados.get('area_construida')),
+        preco=_num(dados.get('preco')),
+        descricao=dados.get('descricao') or '',
+        proprietario_id=pessoa_id,
+        status_publicacao='pendente',
+        origem_cadastro=origem,
+    )
+    db.session.add(imovel)
+    return imovel
+
+
 # ── ROTAS ─────────────────────────────────────────────────────────────────────
+
+@cliente_bp.route('/<slug>/cliente')
+def portal_por_slug(slug):
+    """Acesso pelo host da plataforma: /{slug}/cliente → grava a imobiliária na sessão."""
+    from flask import abort
+    imob = Imobiliaria.query.filter_by(slug=slug, ativo=True).first()
+    if not imob:
+        abort(404)
+    session['_site_imob_id'] = imob.id
+    return redirect(url_for('cliente.portal'))
+
 
 @cliente_bp.route('/cliente')
 def portal():
@@ -166,35 +245,11 @@ def anunciar():
     tipos = TipoImovel.query.filter_by(imobiliaria_id=imob.id).all()
 
     if request.method == 'POST':
-        tipo_nome = request.form.get('tipo', '').strip()
-        tipo = TipoImovel.query.filter_by(imobiliaria_id=imob.id, nome=tipo_nome).first()
-        if not tipo and tipos:
-            tipo = tipos[0]
-
-        if not tipo:
+        imovel = criar_imovel_proprietario(
+            imob, session['cliente_pessoa_id'], request.form.to_dict(), origem='Portal')
+        if not imovel:
             flash('Nenhum tipo de imóvel cadastrado. Contate a imobiliária.', 'danger')
             return redirect(url_for('cliente.anunciar'))
-
-        imovel = Imovel(
-            imobiliaria_id=imob.id,
-            tipo_id=tipo.id,
-            titulo=request.form.get('titulo', 'Imóvel a anunciar')[:200],
-            finalidade=request.form.get('finalidade', 'Venda'),
-            cidade=request.form.get('cidade', '')[:100],
-            estado=request.form.get('estado', '')[:2],
-            bairro=request.form.get('bairro', '')[:100],
-            logradouro=request.form.get('logradouro', '')[:200],
-            cep=request.form.get('cep', '')[:10],
-            quartos=int(request.form.get('quartos') or 0),
-            suites=int(request.form.get('suites') or 0),
-            banheiros=int(request.form.get('banheiros') or 0),
-            vagas=int(request.form.get('vagas') or 0),
-            area_construida=float(request.form.get('area_construida') or 0) or None,
-            area_terreno=float(request.form.get('area_terreno') or 0) or None,
-            preco=float(request.form.get('preco') or 0) or None,
-            descricao=request.form.get('descricao', ''),
-        )
-        db.session.add(imovel)
         db.session.flush()
 
         fotos = request.files.getlist('fotos')

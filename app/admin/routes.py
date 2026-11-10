@@ -130,11 +130,26 @@ def dashboard():
 @login_required
 def listar_imoveis():
     page       = request.args.get('page', 1, type=int)
-    pagination = (Imovel.query
-                  .filter_by(imobiliaria_id=current_user.imobiliaria_id)
-                  .order_by(Imovel.id.desc())
+    pendentes  = request.args.get('pendentes') == '1'
+    query      = Imovel.query.filter_by(imobiliaria_id=current_user.imobiliaria_id)
+    total_pendentes = query.filter(Imovel.status_publicacao == 'pendente').count()
+    if pendentes:
+        query = query.filter(Imovel.status_publicacao == 'pendente')
+    pagination = (query.order_by(Imovel.id.desc())
                   .paginate(page=page, per_page=20, error_out=False))
-    return render_template('admin/imoveis.html', imoveis=pagination.items, pagination=pagination)
+    return render_template('admin/imoveis.html', imoveis=pagination.items, pagination=pagination,
+                           pendentes=pendentes, total_pendentes=total_pendentes)
+
+
+@admin_bp.route('/imoveis/<int:id>/publicar', methods=['POST'])
+@login_required
+def publicar_imovel(id):
+    """Aprova um imóvel enviado pelo proprietário (WhatsApp/portal) e o publica no site."""
+    imovel = Imovel.query.filter_by(id=id, imobiliaria_id=current_user.imobiliaria_id).first_or_404()
+    imovel.status_publicacao = 'publicado'
+    db.session.commit()
+    flash(f"Imóvel {imovel.codigo_ref} publicado no site.", "success")
+    return redirect(request.referrer or url_for('admin.listar_imoveis'))
 
 # --- GESTÃO DE IMÓVEIS (VERSÃO CONGELADA) ---
 

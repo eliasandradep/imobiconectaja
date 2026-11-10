@@ -56,7 +56,7 @@ def finalidade_efetiva(lead):
 
 def query_compativeis(lead):
     """Query dos imóveis da imobiliária do lead que atendem ao perfil de busca."""
-    query = Imovel.query.filter_by(imobiliaria_id=lead.imobiliaria_id)
+    query = Imovel.query.filter_by(imobiliaria_id=lead.imobiliaria_id).filter(Imovel.filtro_publicado())
 
     fin = {'Compra': 'Venda', 'Locação': 'Locação'}.get(finalidade_efetiva(lead))
     if fin:

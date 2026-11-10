@@ -160,6 +160,9 @@ def _serializar_imovel(iv):
         },
         "foto_principal": foto_principal,
         "total_fotos": len(iv.fotos),
+        "status_publicacao": iv.status_publicacao or "publicado",
+        "origem_cadastro": iv.origem_cadastro or "Painel",
+        "proprietario_id": iv.proprietario_id,
         "data_cadastro": iv.data_cadastro.isoformat() if iv.data_cadastro else None,
     }
 
@@ -443,6 +446,7 @@ def criar_imovel():
         vagas=int(_num(dados.get('vagas'))),
         descricao=dados.get('descricao'),
         destaque=bool(dados.get('destaque', False)),
+        origem_cadastro='API',
     )
     db.session.add(imovel)
     db.session.commit()

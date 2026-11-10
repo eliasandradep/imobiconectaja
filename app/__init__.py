@@ -113,7 +113,8 @@ def create_app():
         # permitindo que /imovel/<id>, /p/<slug> etc. funcionem após entrar via /<slug>/.
         if not g.imobiliaria:
             imob_id = session.get('_site_imob_id')
-            if imob_id and request.endpoint and request.endpoint.startswith('site.') \
+            if imob_id and request.endpoint \
+                    and request.endpoint.startswith(('site.', 'cliente.')) \
                     and request.endpoint != 'site.index':
                 from .models import Imobiliaria
                 g.imobiliaria = Imobiliaria.query.filter_by(
@@ -150,8 +151,10 @@ def create_app():
     @app.context_processor
     def injetar_contexto():
         from app.superadmin.routes import PLANOS_CONFIG
+        from app.planos import plano_permite
         extras = {'config': app.config, 'url_site_imob': url_site_imobiliaria,
-                  'url_inicio': url_inicio_site, 'planos_config': PLANOS_CONFIG}
+                  'url_inicio': url_inicio_site, 'planos_config': PLANOS_CONFIG,
+                  'plano_permite': plano_permite}
 
         if not getattr(g, 'imobiliaria', None):
             return {**extras, 'menu_links': [], 'menu_paginas': [], 'leads_novos_count': 0}

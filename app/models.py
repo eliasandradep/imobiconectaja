@@ -111,11 +111,27 @@ class Imovel(db.Model):
 
     proprietario_id = db.Column(db.Integer, db.ForeignKey('pessoas.id'), nullable=True)
 
+    # Publicação: 'publicado' aparece no site; 'pendente' aguarda aprovação do corretor
+    # (cadastros feitos pelo proprietário via WhatsApp ou portal). NULL = publicado.
+    status_publicacao = db.Column(db.String(20), default='publicado')
+    # Origem do cadastro: Painel | API | WhatsApp | Portal
+    origem_cadastro   = db.Column(db.String(20), default='Painel')
+
     fotos        = db.relationship('Foto',      backref='imovel',             lazy=True,
                                    cascade="all, delete-orphan")
     tipo         = db.relationship('TipoImovel', backref='imoveis_deste_tipo', lazy=True)
     proprietario = db.relationship('Pessoa',     backref='imoveis_proprietario', lazy=True,
                                    foreign_keys=[proprietario_id])
+
+    @property
+    def pendente(self):
+        return self.status_publicacao == 'pendente'
+
+    @staticmethod
+    def filtro_publicado():
+        """Condição SQL para imóveis visíveis no site público."""
+        return db.or_(Imovel.status_publicacao.is_(None),
+                      Imovel.status_publicacao != 'pendente')
 
 
 class Foto(db.Model):

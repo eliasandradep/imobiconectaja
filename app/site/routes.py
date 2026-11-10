@@ -24,7 +24,7 @@ def _render_site_index():
     preco_max  = request.args.get('preco_max',  '', type=str)
     quartos    = request.args.get('quartos',    '', type=str)
 
-    query = Imovel.query.filter_by(imobiliaria_id=g.imobiliaria.id)
+    query = Imovel.query.filter_by(imobiliaria_id=g.imobiliaria.id).filter(Imovel.filtro_publicado())
 
     if finalidade:
         query = query.filter(Imovel.finalidade == finalidade)
@@ -132,7 +132,8 @@ def slug_painel(slug):
 def detalhes(id):
     if not g.imobiliaria:
         abort(404)
-    imovel = Imovel.query.filter_by(id=id, imobiliaria_id=g.imobiliaria.id).first_or_404()
+    imovel = (Imovel.query.filter_by(id=id, imobiliaria_id=g.imobiliaria.id)
+              .filter(Imovel.filtro_publicado()).first_or_404())
     return render_template('site/detalhes.html', imovel=imovel)
 
 
@@ -227,7 +228,7 @@ def _executar_tool(nome_tool: str, entrada: dict, imob_id: int) -> dict:
         quartos_min = entrada.get("quartos_min")
         preco_max   = entrada.get("preco_max")
 
-        q = Imovel.query.filter_by(imobiliaria_id=imob_id)
+        q = Imovel.query.filter_by(imobiliaria_id=imob_id).filter(Imovel.filtro_publicado())
         if finalidade:
             q = q.filter(Imovel.finalidade.ilike(f"%{finalidade}%"))
         if cidade:
@@ -258,7 +259,8 @@ def chat():
     import json
     import os
 
-    if not g.imobiliaria:
+    from ..planos import plano_permite
+    if not g.imobiliaria or not plano_permite(g.imobiliaria, 'chatbot'):
         return jsonify({'resposta': 'Serviço indisponível.'}), 404
 
     dados = request.get_json(silent=True) or {}

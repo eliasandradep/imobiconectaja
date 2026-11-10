@@ -17,6 +17,22 @@
     {% endif %}
 {% endwith %}
 
+{% if total_pendentes or pendentes %}
+<div class="alert {{ 'alert-light border' if pendentes else 'alert-warning' }} d-flex justify-content-between align-items-center">
+    <span>
+        <i class="bi bi-hourglass-split me-1"></i>
+        {% if pendentes %}Mostrando apenas imóveis <strong>pendentes de aprovação</strong>.
+        {% else %}<strong>{{ total_pendentes }}</strong> imóve{{ 'is' if total_pendentes != 1 else 'l' }} enviado{{ 's' if total_pendentes != 1 }}
+        por proprietários (WhatsApp/portal) aguardando aprovação. Eles só aparecem no site depois de publicados.{% endif %}
+    </span>
+    {% if pendentes %}
+    <a href="{{ url_for('admin.listar_imoveis') }}" class="btn btn-sm btn-outline-secondary">Ver todos</a>
+    {% else %}
+    <a href="{{ url_for('admin.listar_imoveis', pendentes=1) }}" class="btn btn-sm btn-warning">Ver pendentes</a>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="card shadow-sm border-0">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -33,10 +49,27 @@
                 {% for imovel in imoveis %}
                 <tr>
                     <td class="ps-4"><span class="badge bg-light text-dark border">{{ imovel.codigo_ref }}</span></td>
-                    <td class="fw-bold">{{ imovel.titulo }}</td>
+                    <td class="fw-bold">
+                        {{ imovel.titulo }}
+                        {% if imovel.pendente %}
+                        <span class="badge bg-warning text-dark ms-1" title="Enviado pelo proprietário — não aparece no site">
+                            Pendente · {{ imovel.origem_cadastro or 'Proprietário' }}
+                        </span>
+                        {% endif %}
+                        {% if imovel.proprietario %}
+                        <div class="small text-muted fw-normal"><i class="bi bi-person"></i> {{ imovel.proprietario.nome }}</div>
+                        {% endif %}
+                    </td>
                     <td>{{ imovel.tipo.nome }}</td>
                     <td class="text-primary fw-bold">{{ imovel.preco | moeda }}</td>
                     <td class="text-center">
+                        {% if imovel.pendente %}
+                        <form method="POST" action="{{ url_for('admin.publicar_imovel', id=imovel.id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-success shadow-sm me-1" title="Aprovar e publicar no site">
+                                <i class="bi bi-check2-circle"></i> Publicar
+                            </button>
+                        </form>
+                        {% endif %}
                         <div class="btn-group shadow-sm">
                             <a href="{{ url_for('admin.detalhe_imovel', id=imovel.id) }}" class="btn btn-sm btn-outline-secondary" title="Ver Detalhes">
                                 <i class="bi bi-eye"></i>

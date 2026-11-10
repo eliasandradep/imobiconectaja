@@ -278,6 +278,7 @@
 {% block scripts %}{% endblock %}
 
 {# ── Chatbot Widget ─────────────────────────────────────────────── #}
+{% if plano_permite(g.imobiliaria, 'chatbot') %}
 <button id="chat-fab" title="Corretor Inteligente" aria-label="Corretor Inteligente">
   <span class="fab-icon"><i class="bi bi-stars"></i></span>
   Corretor Inteligente
@@ -440,5 +441,6 @@
   }, 4000);
 })();
 </script>
+{% endif %}
 </body>
 </html>
