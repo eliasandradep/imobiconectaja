@@ -126,6 +126,14 @@ def dashboard():
         leads_recentes=leads_recentes,
     )
 
+def _permuta_do_form():
+    """Permuta só vale para imóveis à venda; em locação é sempre desmarcada."""
+    a_venda = request.form.get('finalidade') in ('Venda', 'Venda e Locação')
+    aceita  = a_venda and bool(request.form.get('aceita_permuta'))
+    obs     = (request.form.get('permuta_obs') or '').strip()[:300]
+    return {'aceita_permuta': aceita, 'permuta_obs': obs if aceita and obs else None}
+
+
 @admin_bp.route('/imoveis')
 @login_required
 def listar_imoveis():
@@ -208,6 +216,7 @@ def novo_imovel():
                 estado=request.form.get('estado'),
                 descricao=request.form.get('descricao'),
                 destaque=True if request.form.get('destaque') else False,
+                **_permuta_do_form(),
                 proprietario_id=prop_id,
             )
             db.session.add(novo)
@@ -262,6 +271,8 @@ def editar_imovel(id):
             imovel.estado           = request.form.get('estado')
             imovel.descricao        = request.form.get('descricao')
             imovel.destaque         = True if request.form.get('destaque') else False
+            for campo, valor in _permuta_do_form().items():
+                setattr(imovel, campo, valor)
             imovel.proprietario_id  = int(prop_id) if prop_id else None
 
             # Processa novas fotos enviadas nesta edição

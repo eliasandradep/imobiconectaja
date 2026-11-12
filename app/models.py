@@ -112,6 +112,18 @@ class Imovel(db.Model):
     descricao = db.Column(db.Text)
     destaque  = db.Column(db.Boolean, default=False)
 
+    # Permuta (só para imóveis à venda): o proprietário aceita outro bem como parte do pagamento
+    aceita_permuta = db.Column(db.Boolean, default=False)
+    permuta_obs    = db.Column(db.String(300))   # ex: "Aceita apartamento menor em SJC ou veículo"
+
+    @property
+    def a_venda(self):
+        return self.finalidade in ('Venda', 'Venda e Locação')
+
+    @property
+    def mostra_permuta(self):
+        return bool(self.aceita_permuta) and self.a_venda
+
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
 
     proprietario_id = db.Column(db.Integer, db.ForeignKey('pessoas.id'), nullable=True)

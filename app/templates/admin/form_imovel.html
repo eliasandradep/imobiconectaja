@@ -67,6 +67,7 @@
                             <select name="finalidade" id="finalidade" class="form-select" onchange="updateLabelPreco()">
                                 <option value="Venda" {{ 'selected' if imovel and imovel.finalidade == 'Venda' }}>Venda</option>
                                 <option value="Locação" {{ 'selected' if imovel and imovel.finalidade == 'Locação' }}>Locação</option>
+                                <option value="Venda e Locação" {{ 'selected' if imovel and imovel.finalidade == 'Venda e Locação' }}>Venda e Locação</option>
                             </select>
                         </div>
                         <div class="col-12 mb-3">
@@ -138,6 +139,20 @@
                     <label class="form-label">IPTU</label>
                     <input type="text" id="iptu_mask" class="form-control money" value="{{ imovel.valor_iptu | moeda if imovel }}">
                     <input type="hidden" name="iptu_real" id="iptu_real" value="{{ imovel.valor_iptu if imovel }}">
+
+                    <div id="bloco-permuta" class="border-top pt-3 mt-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="aceita_permuta" id="aceita_permuta"
+                                   onchange="updatePermuta()" {{ 'checked' if imovel and imovel.aceita_permuta }}>
+                            <label class="form-check-label fw-bold" for="aceita_permuta">Aceita permuta</label>
+                        </div>
+                        <div id="permuta-detalhe" class="mt-2">
+                            <input type="text" name="permuta_obs" class="form-control form-control-sm" maxlength="300"
+                                   placeholder="O que aceita? Ex: apartamento menor, terreno, veículo"
+                                   value="{{ imovel.permuta_obs if imovel and imovel.permuta_obs }}">
+                            <div class="form-text">Aparece no anúncio com o selo "Aceita permuta".</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -281,10 +296,18 @@
         const finalidade = document.getElementById('finalidade').value;
         const label = document.getElementById('label_preco');
         label.textContent = finalidade === 'Locação' ? 'Valor do Aluguel (R$/mês)' : 'Preço de Venda';
+        // Permuta só faz sentido para imóveis à venda
+        document.getElementById('bloco-permuta').style.display = finalidade === 'Locação' ? 'none' : '';
+    }
+
+    function updatePermuta() {
+        document.getElementById('permuta-detalhe').style.display =
+            document.getElementById('aceita_permuta').checked ? '' : 'none';
     }
 
     document.addEventListener("DOMContentLoaded", function() {
         updateLabelPreco();
+        updatePermuta();
         const selProp = document.getElementById('sel-proprietario');
         if (selProp) {
             new TomSelect(selProp, {

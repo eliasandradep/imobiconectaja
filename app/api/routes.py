@@ -160,6 +160,8 @@ def _serializar_imovel(iv):
         },
         "foto_principal": foto_principal,
         "total_fotos": len(iv.fotos),
+        "aceita_permuta": iv.mostra_permuta,
+        "permuta_obs": iv.permuta_obs if iv.mostra_permuta else None,
         "status_publicacao": iv.status_publicacao or "publicado",
         "origem_cadastro": iv.origem_cadastro or "Painel",
         "proprietario_id": iv.proprietario_id,
@@ -446,6 +448,8 @@ def criar_imovel():
         vagas=int(_num(dados.get('vagas'))),
         descricao=dados.get('descricao'),
         destaque=bool(dados.get('destaque', False)),
+        aceita_permuta=bool(dados.get('aceita_permuta')) and finalidade != 'Locação',
+        permuta_obs=((dados.get('permuta_obs') or '')[:300] or None) if finalidade != 'Locação' else None,
         origem_cadastro='API',
     )
     db.session.add(imovel)
@@ -512,6 +516,13 @@ def atualizar_imovel(id):
 
     if 'destaque' in dados:
         iv.destaque = bool(dados['destaque'])
+
+    if 'aceita_permuta' in dados:
+        iv.aceita_permuta = bool(dados['aceita_permuta'])
+    if 'permuta_obs' in dados:
+        iv.permuta_obs = (dados['permuta_obs'] or '')[:300] or None
+    if not iv.a_venda:                      # permuta só vale para imóveis à venda
+        iv.aceita_permuta, iv.permuta_obs = False, None
 
     db.session.commit()
     return _ok(_serializar_imovel(iv), "Imóvel atualizado com sucesso.")

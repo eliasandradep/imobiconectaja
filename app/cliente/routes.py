@@ -69,6 +69,8 @@ def _extrair_imovel_ia(texto: str, imob_id: int) -> dict:
                 "banheiros":      {"type": "integer", "description": "Número de banheiros"},
                 "vagas":          {"type": "integer", "description": "Vagas de garagem"},
                 "preco":          {"type": "number", "description": "Preço em R$, se mencionado"},
+                "aceita_permuta": {"type": "boolean", "description": "true se o proprietário aceita permuta/troca (só para venda)"},
+                "permuta_obs":    {"type": "string", "description": "O que aceita na permuta, se mencionado (ex: carro, apartamento menor)"},
                 "descricao":      {"type": "string", "description": "Resumo descritivo do imóvel para o anúncio"},
                 "caracteristicas":{"type": "array", "items": {"type": "string"},
                                    "description": "Lista de características extras (closet, piscina, churrasqueira etc.)"},
@@ -123,6 +125,11 @@ def _num(v):
         return 0
 
 
+def _sim(v):
+    """Booleano vindo de JSON (True) ou de formulário ('on', '1', 'sim')."""
+    return v is True or str(v).strip().lower() in ('on', '1', 'true', 'sim', 's')
+
+
 def criar_imovel_proprietario(imob, pessoa_id, dados, origem):
     """
     Cria o imóvel enviado pelo próprio proprietário (WhatsApp ou portal).
@@ -165,6 +172,8 @@ def criar_imovel_proprietario(imob, pessoa_id, dados, origem):
         proprietario_id=pessoa_id,
         status_publicacao='pendente',
         origem_cadastro=origem,
+        aceita_permuta=_sim(dados.get('aceita_permuta')) and finalidade != 'Locação',
+        permuta_obs=((dados.get('permuta_obs') or '').strip()[:300] or None) if finalidade != 'Locação' else None,
     )
     db.session.add(imovel)
     return imovel

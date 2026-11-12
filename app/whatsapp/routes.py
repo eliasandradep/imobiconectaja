@@ -211,6 +211,8 @@ def _processar(conv: dict, numero: str, tipo_msg: str, conteudo: str,
             'Perfeito! Agora me descreva o imóvel com o máximo de detalhes:\n\n'
             '_Exemplo: Casa com 3 quartos, 1 suíte, 2 banheiros, sala, cozinha, '
             '150m² construídos, 200m² de terreno, garagem para 2 carros, em São Paulo-SP._'
+            + ('\n\nSe aceitar *permuta*, conte também o que aceitaria (ex: carro, apartamento menor).'
+               if finalidade != 'Locação' else '')
         )
         avancar('DESCRICAO')
         return
@@ -246,6 +248,9 @@ def _processar(conv: dict, numero: str, tipo_msg: str, conteudo: str,
         )
         if extraido.get('preco'):
             resumo += f'💰 Preço: R$ {float(extraido["preco"]):,.0f}\n'.replace(',', '.')
+        if extraido.get('aceita_permuta') and dados['finalidade'] != 'Locação':
+            obs = extraido.get('permuta_obs')
+            resumo += f'🔄 Aceita permuta{": " + obs if obs else ""}\n'
 
         resumo += '\nAs informações estão corretas?\n*1 - Sim, continuar*\n*2 - Não, descrever novamente*'
         responder(resumo)

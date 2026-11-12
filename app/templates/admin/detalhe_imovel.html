@@ -99,6 +99,12 @@
                 <i class="bi bi-star-fill me-1"></i> Destaque
             </span>
             {% endif %}
+            {% if imovel.mostra_permuta %}
+            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle fs-6 px-3 py-2"
+                  title="{{ imovel.permuta_obs or '' }}">
+                <i class="bi bi-arrow-left-right me-1"></i> Aceita permuta{% if imovel.permuta_obs %}: {{ imovel.permuta_obs }}{% endif %}
+            </span>
+            {% endif %}
         </div>
 
         {# Valores #}

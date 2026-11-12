@@ -15,8 +15,15 @@
                 {% endif %}
             </a>
             <div class="card-body d-flex flex-column">
-                <span class="badge bg-light text-dark border mb-1 align-self-start"
-                      style="font-size:.7rem;">{{ imovel.tipo.nome }} — {{ imovel.finalidade }}</span>
+                <div class="d-flex flex-wrap gap-1 mb-1">
+                    <span class="badge bg-light text-dark border"
+                          style="font-size:.7rem;">{{ imovel.tipo.nome }} — {{ imovel.finalidade }}</span>
+                    {% if imovel.mostra_permuta %}
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle"
+                          style="font-size:.7rem;" title="{{ imovel.permuta_obs or 'O proprietário aceita permuta' }}">
+                        <i class="bi bi-arrow-left-right me-1"></i>Aceita permuta</span>
+                    {% endif %}
+                </div>
                 <h6 class="fw-bold text-truncate mb-1">{{ imovel.titulo }}</h6>
                 <p class="text-primary fw-bold mb-1 fs-5">{{ imovel.preco | moeda }}</p>
                 <p class="text-muted small mb-2">

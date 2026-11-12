@@ -116,6 +116,14 @@
           <label class="form-label fw-bold small">Preço (R$)</label>
           <input type="number" step="0.01" name="preco" id="f-preco" class="form-control">
         </div>
+        <div class="col-md-8" id="bloco-permuta">
+          <div class="form-check form-switch mt-md-4">
+            <input class="form-check-input" type="checkbox" name="aceita_permuta" id="f-aceita_permuta">
+            <label class="form-check-label fw-bold small" for="f-aceita_permuta">Aceito permuta</label>
+          </div>
+          <input type="text" name="permuta_obs" id="f-permuta_obs" class="form-control form-control-sm mt-1" maxlength="300"
+                 placeholder="O que aceita? Ex: apartamento menor, terreno, veículo">
+        </div>
         <div class="col-12">
           <label class="form-label fw-bold small">Descrição para o anúncio</label>
           <textarea name="descricao" id="f-descricao" class="form-control" rows="4"
@@ -140,6 +148,16 @@
 <script>
 const btnIa  = document.getElementById('btn-ia');
 const status = document.getElementById('ia-status');
+
+// Permuta só vale para imóveis à venda
+function atualizarPermuta() {
+  const fin = document.getElementById('f-finalidade').value;
+  document.getElementById('bloco-permuta').style.display = fin === 'Locação' ? 'none' : '';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-finalidade').addEventListener('change', atualizarPermuta);
+  atualizarPermuta();
+});
 
 function preencherCampo(id, valor) {
   const el = document.getElementById(id);
@@ -191,6 +209,9 @@ btnIa.addEventListener('click', async () => {
     preencherCampo('f-area_terreno',    dados.area_terreno);
     preencherCampo('f-preco',           dados.preco);
     preencherCampo('f-descricao',       dados.descricao);
+    if (dados.aceita_permuta) document.getElementById('f-aceita_permuta').checked = true;
+    preencherCampo('f-permuta_obs',     dados.permuta_obs);
+    atualizarPermuta();
 
     status.innerHTML = '✅ Campos preenchidos automaticamente! Revise antes de enviar.';
   } catch (e) {

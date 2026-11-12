@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Blueprint, render_template, g, abort, request, redirect, url_for, jsonify
-from ..models import Imovel, TipoImovel
+from ..models import Imovel, TipoImovel, db
 
 site_bp = Blueprint('site', __name__)
 
@@ -23,16 +23,21 @@ def _render_site_index():
     cidade     = request.args.get('cidade',     '').strip()
     preco_max  = request.args.get('preco_max',  '', type=str)
     quartos    = request.args.get('quartos',    '', type=str)
+    permuta    = request.args.get('permuta') == '1'
 
     query = Imovel.query.filter_by(imobiliaria_id=g.imobiliaria.id).filter(Imovel.filtro_publicado())
 
     if finalidade:
-        query = query.filter(Imovel.finalidade == finalidade)
+        # Imóvel "Venda e Locação" aparece tanto na busca por Venda quanto por Locação
+        query = query.filter(db.or_(Imovel.finalidade == finalidade,
+                                    Imovel.finalidade == 'Venda e Locação'))
+    if permuta:
+        query = query.filter(Imovel.aceita_permuta.is_(True),
+                             Imovel.finalidade.in_(['Venda', 'Venda e Locação']))
     if tipo_id:
         query = query.filter(Imovel.tipo_id == int(tipo_id))
     if cidade:
         like = f"%{cidade}%"
-        from ..models import db
         query = query.filter(
             db.or_(Imovel.cidade.ilike(like), Imovel.bairro.ilike(like))
         )
@@ -57,7 +62,7 @@ def _render_site_index():
     per_page   = g.imobiliaria.imoveis_por_pagina or 9
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     tipos      = TipoImovel.query.filter_by(imobiliaria_id=g.imobiliaria.id).all()
-    filtros_ativos = any([finalidade, tipo_id, cidade, preco_max, quartos])
+    filtros_ativos = any([finalidade, tipo_id, cidade, preco_max, quartos, permuta])
 
     return render_template(
         'site/index.html',
@@ -65,7 +70,7 @@ def _render_site_index():
         pagination=pagination,
         tipos=tipos,
         filtros=dict(finalidade=finalidade, tipo_id=tipo_id,
-                     cidade=cidade, preco_max=preco_max, quartos=quartos),
+                     cidade=cidade, preco_max=preco_max, quartos=quartos, permuta=permuta),
         filtros_ativos=filtros_ativos,
     )
 
@@ -227,6 +232,7 @@ def _executar_tool(nome_tool: str, entrada: dict, imob_id: int) -> dict:
         cidade      = entrada.get("cidade")
         quartos_min = entrada.get("quartos_min")
         preco_max   = entrada.get("preco_max")
+        permuta     = entrada.get("aceita_permuta")
 
         q = Imovel.query.filter_by(imobiliaria_id=imob_id).filter(Imovel.filtro_publicado())
         if finalidade:
@@ -237,6 +243,9 @@ def _executar_tool(nome_tool: str, entrada: dict, imob_id: int) -> dict:
             q = q.filter(Imovel.quartos >= quartos_min)
         if preco_max:
             q = q.filter(Imovel.preco <= preco_max)
+        if permuta:
+            q = q.filter(Imovel.aceita_permuta.is_(True),
+                         Imovel.finalidade.in_(['Venda', 'Venda e Locação']))
 
         imoveis = q.order_by(Imovel.destaque.desc(), Imovel.id.desc()).limit(5).all()
         resultado = []
@@ -247,6 +256,8 @@ def _executar_tool(nome_tool: str, entrada: dict, imob_id: int) -> dict:
                 "cidade":     im.cidade,
                 "quartos":    im.quartos,
                 "preco":      float(im.preco) if im.preco else None,
+                "aceita_permuta": im.mostra_permuta,
+                "permuta_obs":    im.permuta_obs if im.mostra_permuta else None,
                 "url":        url_for('site.detalhes', id=im.id, _external=False),
             })
         return {"imoveis": resultado, "total": len(resultado)}
@@ -378,6 +389,8 @@ def chat():
                     "cidade":      {"type": "string"},
                     "quartos_min": {"type": "integer"},
                     "preco_max":   {"type": "number"},
+                    "aceita_permuta": {"type": "boolean",
+                                       "description": "true para buscar só imóveis à venda que aceitam permuta"},
                 },
             },
         },
